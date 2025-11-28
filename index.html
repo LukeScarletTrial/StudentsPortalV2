@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal 7AC-9AC</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        /* ========== CSS STYLES ========== */
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --bg: #f3f4f6;
+            --text: #1f2937;
+            --white: #ffffff;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            color: var(--text);
+            transition: all 0.3s ease;
+        }
+
+        /* RTL Support for Arabic */
+        body[dir="rtl"] { text-align: right; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .hidden { display: none !important; }
+
+        /* Auth Screen */
+        .auth-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .auth-box {
+            background: var(--white);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 450px;
+        }
+        .lang-switch {
+            position: absolute; top: 20px; right: 20px;
+            background: white; padding: 10px; border-radius: 50%;
+            cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: none; font-size: 20px;
+        }
+
+        input, select, textarea {
+            width: 100%; padding: 12px; margin-bottom: 15px;
+            border: 2px solid #e5e7eb; border-radius: 8px;
+            font-size: 15px; outline: none;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+
+        .btn {
+            width: 100%; padding: 12px; border: none; border-radius: 8px;
+            background: var(--primary); color: white; font-weight: bold;
+            cursor: pointer; transition: 0.3s;
+        }
+        .btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .btn-outline { background: transparent; color: #666; border: 2px solid #eee; margin-bottom: 10px; }
+        .btn-outline.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-small { width: auto; padding: 8px 16px; font-size: 14px; }
+        .btn-danger { background: var(--danger); }
+
+        /* Main Portal Layout */
+        .portal-header {
+            background: var(--white); padding: 15px 30px;
+            border-radius: 15px; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .nav-grid {
+            display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;
+            background: var(--white); padding: 15px; border-radius: 15px;
+        }
+        .nav-item {
+            flex: 1; min-width: 120px; text-align: center; padding: 12px;
+            background: #f8fafc; border-radius: 10px; cursor: pointer;
+            font-weight: 600; color: #64748b; transition: 0.3s;
+        }
+        .nav-item:hover, .nav-item.active { background: var(--primary); color: white; }
+
+        .content-card {
+            background: var(--white); padding: 25px; border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); min-height: 400px;
+        }
+
+        /* Items (Projects, Assignments) */
+        .item-card {
+            border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px;
+            margin-bottom: 15px; border-left: 4px solid var(--primary);
+        }
+        .item-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .badge {
+            padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;
+        }
+        .badge-admin { background: #fef3c7; color: #d97706; }
+        .badge-grade { background: #dbeafe; color: #1e40af; }
+
+        /* Chat */
+        .chat-box { height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .msg { margin-bottom: 10px; padding: 10px; border-radius: 8px; background: #f1f5f9; }
+        .msg-meta { font-size: 11px; color: #94a3b8; margin-bottom: 2px; }
+
+        /* Profile & Authors */
+        .author-card {
+            background: linear-gradient(to right, #e0e7ff, #f3e8ff);
+            padding: 20px; border-radius: 12px; border: 1px solid #c7d2fe;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="lang-switch" onclick="toggleLanguage()">🌐</button>
+
+    <div id="authScreen" class="auth-wrapper">
+        <div class="auth-box">
+            <h1 style="text-align: center; color: var(--primary); margin-bottom: 20px;" data-t="portalTitle">Student Portal</h1>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="btn btn-outline active" onclick="switchAuthMode('login')" data-t="loginBtn">Login</button>
+                <button class="btn btn-outline" onclick="switchAuthMode('register')" data-t="registerBtn">Register</button>
+            </div>
+
+            <form id="loginForm">
+                <input type="email" id="l_email" placeholder="Email" required>
+                <input type="password" id="l_password" placeholder="Password" required>
+                <button type="submit" class="btn" data-t="loginBtn">Login</button>
+            </form>
+
+            <form id="registerForm" class="hidden">
+                <input type="text" id="r_name" placeholder="Full Name" required>
+                <input type="email" id="r_email" placeholder="Email" required>
+                <input type="password" id="r_password" placeholder="Password" required>
+                
+                <select id="r_grade" required>
+                    <option value="" disabled selected>Select Grade</option>
+                    <option value="7AC">7AC (OULA)</option>
+                    <option value="8AC">8AC (TANIA)</option>
+                    <option value="9AC">9AC (TALTA)</option>
+                </select>
+                
+                <input type="text" id="r_section" placeholder="Section (e.g., 1, 2, 3)" required>
+                <button type="submit" class="btn" data-t="registerBtn">Register</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="pendingScreen" class="auth-wrapper hidden">
+        <div class="auth-box" style="text-align: center;">
+            <h2 style="color: var(--warning);" data-t="pendingTitle">Pending Approval</h2>
+            <p style="margin: 20px 0;" data-t="pendingMsg">You have been added to the waiting list. An administrator must approve your account.</p>
+            <button class="btn btn-danger" onclick="doLogout()" data-t="logout">Logout</button>
+        </div>
+    </div>
+
+    <div id="portalScreen" class="container hidden">
+        <header class="portal-header">
+            <div>
+                <h2 data-t="portalTitle">Student Portal</h2>
+                <small id="welcomeUser">Welcome, User</small>
+            </div>
+            <div>
+                <span id="adminBadge" class="badge badge-admin hidden">ADMIN</span>
+                <button class="btn btn-small btn-danger" onclick="doLogout()" data-t="logout">Logout</button>
+            </div>
+        </header>
+
+        <nav class="nav-grid">
+            <div class="nav-item active" onclick="showTab('projects')" data-t="tabProjects">Projects</div>
+            <div class="nav-item" onclick="showTab('events')" data-t="tabEvents">Events</div>
+            <div class="nav-item" onclick="showTab('assignments')" data-t="tabHomework">Assignments</div>
+            <div class="nav-item" onclick="showTab('chat')" data-t="tabChat">Conversations</div>
+            <div class="nav-item" onclick="showTab('profile')" data-t="tabProfile">Profile</div>
+            <div class="nav-item" onclick="showTab('authors')" data-t="tabAuthors">Authors</div>
+        </nav>
+
+        <div class="content-card">
+            
+            <div id="tab-projects">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <h3 data-t="tabProjects">Projects</h3>
+                    <button class="btn btn-small" onclick="document.getElementById('newProjectForm').classList.toggle('hidden')">New Project</button>
+                </div>
+
+                <div id="newProjectForm" class="hidden" style="background: #f8fafc; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <input type="text" id="proj_name" placeholder="Project Name">
+                    <textarea id="proj_desc" placeholder="Description"></textarea>
+                    <select id="proj_type">
+                        <option value="public">Public</option>
+                        <option value="private">Private (Requires Key)</option>
+                    </select>
+                    <button class="btn" onclick="createProject()">Create Project</button>
+                </div>
+                <div id="projectsList"></div>
+            </div>
+
+            <div id="tab-events" class="hidden">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <h3 data-t="tabEvents">Events</h3>
+                    <button id="btnCreateEvent" class="btn btn-small hidden" onclick="document.getElementById('newEventForm').classList.toggle('hidden')">Add Event</button>
+                </div>
+
+                <div id="newEventForm" class="hidden" style="background: #f8fafc; padding: 15px; margin-bottom: 20px;">
+                    <input type="text" id="evt_title" placeholder="Event Title">
+                    <div style="display: flex; gap: 10px;">
+                        <input type="date" id="evt_start">
+                        <input type="date" id="evt_end">
+                    </div>
+                    <button class="btn" onclick="createEvent()">Post Event</button>
+                </div>
+                <div id="eventsList"></div>
+            </div>
+
+            <div id="tab-assignments" class="hidden">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <h3 data-t="tabHomework">Assignments</h3>
+                    <button class="btn btn-small" onclick="document.getElementById('newHwForm').classList.toggle('hidden')">Post Assignment</button>
+                </div>
+
+                <div id="newHwForm" class="hidden" style="background: #f8fafc; padding: 15px; margin-bottom: 20px;">
+                    <input type="text" id="hw_title" placeholder="Assignment Title">
+                    <textarea id="hw_desc" placeholder="Details (Moderated)"></textarea>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="hw_subject">
+                            <option value="Arabic">Arabic</option>
+                            <option value="French">French</option>
+                            <option value="English">English</option>
+                            <option value="Math">Mathematics</option>
+                            <option value="History">History</option>
+                            <option value="Physics">Physics</option>
+                            <option value="SVT">Science (SVT)</option>
+                            <option value="Informatique">Informatique</option>
+                            <option value="Art">Art</option>
+                            <option value="Music">Music</option>
+                        </select>
+                        <select id="hw_grade_target">
+                            <option value="7AC">7AC</option>
+                            <option value="8AC">8AC</option>
+                            <option value="9AC">9AC</option>
+                        </select>
+                    </div>
+                    <button class="btn" onclick="createAssignment()">Post</button>
+                </div>
+                <div id="assignmentsList"></div>
+            </div>
+
+            <div id="tab-chat" class="hidden">
+                <h3 data-t="tabChat">Student Conversation</h3>
+                <div id="chatBox" class="chat-box"></div>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="chatMsg" placeholder="Type a message..." style="margin-bottom: 0;">
+                    <button class="btn btn-small" style="width: 100px;" onclick="sendChat()">Send</button>
+                </div>
+            </div>
+
+            <div id="tab-profile" class="hidden">
+                <h3 data-t="tabProfile">My Profile</h3>
+                <div style="max-width: 500px; margin: 20px auto;">
+                    <label>Full Name</label>
+                    <input type="text" id="p_name">
+                    <label>Grade</label>
+                    <select id="p_grade">
+                        <option value="7AC">7AC</option>
+                        <option value="8AC">8AC</option>
+                        <option value="9AC">9AC</option>
+                    </select>
+                    <label>Section</label>
+                    <input type="text" id="p_section">
+                    <button class="btn" onclick="updateProfile()">Save Changes</button>
+                </div>
+            </div>
+
+            <div id="tab-authors" class="hidden">
+                <h3 data-t="tabAuthors">Authors & Credits</h3>
+                <div class="author-card">
+                    <h2>Yasser Ouamoussi</h2>
+                    <p><strong>Grade:</strong> 7AC1 - Number 21</p>
+                    <p><strong>Role:</strong> Administrator & Lead Developer</p>
+                    <p style="margin-top: 10px;">Created this platform to help students connect and manage their school life.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ================= CONFIGURATION =================
+        // REPLACE THESE WITH YOUR SUPABASE KEYS
+        const SUPABASE_URL="https://gwaazjidvjnjlczvpvtz.supabase.co";
+        const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3YWF6amlkdmpuamxjenZwdnR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyNDUwNDUsImV4cCI6MjA3OTgyMTA0NX0.FOg28Bq6SY43gg64aWU8mwDveKWEbk352heQw9LMd_4";
+        
+        // ================= TRANSLATIONS =================
+        const dictionary = {
+            en: {
+                portalTitle: "Student Portal",
+                loginBtn: "Login",
+                registerBtn: "Register",
+                pendingTitle: "Pending Approval",
+                pendingMsg: "Your account is on the waiting list. Please wait for an Admin.",
+                logout: "Logout",
+                tabProjects: "Projects",
+                tabEvents: "Events",
+                tabHomework: "Assignments",
+                tabChat: "Conversations",
+                tabProfile: "Profile",
+                tabAuthors: "Authors"
+            },
+            fr: {
+                portalTitle: "Portail Étudiant",
+                loginBtn: "Connexion",
+                registerBtn: "S'inscrire",
+                pendingTitle: "En Attente",
+                pendingMsg: "Votre compte est sur liste d'attente. Veuillez attendre un administrateur.",
+                logout: "Déconnexion",
+                tabProjects: "Projets",
+                tabEvents: "Événements",
+                tabHomework: "Devoirs",
+                tabChat: "Discussions",
+                tabProfile: "Profil",
+                tabAuthors: "Auteurs"
+            },
+            ar: {
+                portalTitle: "بوابة الطالب",
+                loginBtn: "تسجيل الدخول",
+                registerBtn: "إنشاء حساب",
+                pendingTitle: "قيد المراجعة",
+                pendingMsg: "حسابك في قائمة الانتظار. يرجى انتظار موافقة المسؤول.",
+                logout: "خروج",
+                tabProjects: "المشاريع",
+                tabEvents: "الأحداث",
+                tabHomework: "الواجبات",
+                tabChat: "المحادثات",
+                tabProfile: "الملف الشخصي",
+                tabAuthors: "المطورون"
+            }
+        };
+
+        // ================= STATE =================
+        let supabase;
+        let currentUser = null;
+        let userProfile = null;
+        let currentLang = navigator.language.startsWith('ar') ? 'ar' : (navigator.language.startsWith('fr') ? 'fr' : 'en');
+
+        // ================= INIT =================
+        window.onload = () => {
+            if(SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
+                alert("Please configure Supabase Keys in the code!");
+                return;
+            }
+            supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            applyLanguage();
+            checkSession();
+        };
+
+        // ================= LANGUAGE LOGIC =================
+        function toggleLanguage() {
+            const order = ['en', 'fr', 'ar'];
+            let idx = order.indexOf(currentLang);
+            currentLang = order[(idx + 1) % 3];
+            applyLanguage();
+        }
+
+        function applyLanguage() {
+            // Set RTL if Arabic
+            document.body.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+            
+            // Translate Text
+            document.querySelectorAll('[data-t]').forEach(el => {
+                const key = el.getAttribute('data-t');
+                if(dictionary[currentLang][key]) {
+                    el.innerText = dictionary[currentLang][key];
+                }
+            });
+        }
+
+        // ================= AUTH LOGIC =================
+        function switchAuthMode(mode) {
+            document.querySelectorAll('.btn-outline').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            if(mode === 'login') {
+                document.getElementById('loginForm').classList.remove('hidden');
+                document.getElementById('registerForm').classList.add('hidden');
+            } else {
+                document.getElementById('loginForm').classList.add('hidden');
+                document.getElementById('registerForm').classList.remove('hidden');
+            }
+        }
+
+        async function checkSession() {
+            const { data } = await supabase.auth.getSession();
+            if(data.session) {
+                currentUser = data.session.user;
+                fetchProfile();
+            } else {
+                showScreen('authScreen');
+            }
+        }
+
+        async function fetchProfile() {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', currentUser.id)
+                .single();
+            
+            if(data) {
+                userProfile = data;
+                if(userProfile.status === 'pending') {
+                    showScreen('pendingScreen');
+                } else {
+                    initPortal();
+                }
+            } else {
+                console.error("Profile missing", error);
+            }
+        }
+
+        async function doLogout() {
+            await supabase.auth.signOut();
+            location.reload();
+        }
+
+        document.getElementById('loginForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('l_email').value;
+            const pass = document.getElementById('l_password').value;
+            const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+            if(error) alert(error.message);
+            else checkSession();
+        };
+
+        document.getElementById('registerForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('r_email').value;
+            const pass = document.getElementById('r_password').value;
+            const name = document.getElementById('r_name').value;
+            const grade = document.getElementById('r_grade').value;
+            const section = document.getElementById('r_section').value;
+
+            // 1. Signup Auth
+            const { data, error } = await supabase.auth.signUp({ email, password: pass });
+            if(error) { alert(error.message); return; }
+
+            // 2. Create DB Profile
+            if(data.user) {
+                const { error: dbError } = await supabase.from('profiles').insert([{
+                    id: data.user.id,
+                    full_name: name,
+                    grade: grade,
+                    section: section,
+                    email: email,
+                    status: 'pending', // Waiting list
+                    is_admin: false
+                }]);
+                if(dbError) alert("Error creating profile: " + dbError.message);
+                else {
+                    alert("Registration successful! Please wait for admin approval.");
+                    location.reload();
+                }
+            }
+        };
+
+        // ================= PORTAL LOGIC =================
+        function showScreen(id) {
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('pendingScreen').classList.add('hidden');
+            document.getElementById('portalScreen').classList.add('hidden');
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function initPortal() {
+            showScreen('portalScreen');
+            document.getElementById('welcomeUser').innerText = userProfile.full_name;
+            
+            // Fill Profile Form
+            document.getElementById('p_name').value = userProfile.full_name;
+            document.getElementById('p_grade').value = userProfile.grade;
+            document.getElementById('p_section').value = userProfile.section;
+
+            // Admin Checks
+            if(userProfile.is_admin) {
+                document.getElementById('adminBadge').classList.remove('hidden');
+                document.getElementById('btnCreateEvent').classList.remove('hidden');
+            }
+
+            // Load Initial Data
+            loadProjects();
+        }
+
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            // Show selected
+            document.getElementById('tab-' + tabName).classList.remove('hidden');
+            event.target.classList.add('active'); // Highlight nav
+
+            // Lazy Load Data
+            if(tabName === 'events') loadEvents();
+            if(tabName === 'assignments') loadAssignments();
+            if(tabName === 'chat') loadChat();
+        }
+
+        // --- FEATURES: PROJECTS ---
+        async function createProject() {
+            const name = document.getElementById('proj_name').value;
+            const desc = document.getElementById('proj_desc').value;
+            const type = document.getElementById('proj_type').value;
+            const key = type === 'private' ? Math.random().toString(36).substring(7).toUpperCase() : null;
+
+            const { error } = await supabase.from('projects').insert([{
+                name, description: desc, type, access_key: key, created_by: currentUser.id
+            }]);
+            
+            if(!error) {
+                document.getElementById('newProjectForm').classList.add('hidden');
+                loadProjects();
+            }
+        }
+
+        async function loadProjects() {
+            const { data } = await supabase.from('projects').select('*').order('created_at', {ascending:false});
+            const list = document.getElementById('projectsList');
+            list.innerHTML = '';
+            data.forEach(p => {
+                list.innerHTML += `
+                    <div class="item-card">
+                        <div class="item-header">
+                            <b>${p.name}</b>
+                            <span class="badge ${p.type === 'public' ? 'badge-grade' : 'badge-admin'}">${p.type}</span>
+                        </div>
+                        <p>${p.description}</p>
+                        ${p.access_key ? `<small style="color:red">Key: ${p.access_key}</small>` : ''}
+                    </div>`;
+            });
+        }
+
+        // --- FEATURES: EVENTS (Admin) ---
+        async function createEvent() {
+            if(!userProfile.is_admin) return alert("Admins Only");
+            const { error } = await supabase.from('events').insert([{
+                title: document.getElementById('evt_title').value,
+                start_date: document.getElementById('evt_start').value,
+                end_date: document.getElementById('evt_end').value,
+                created_by: currentUser.id
+            }]);
+            if(!error) { document.getElementById('newEventForm').classList.add('hidden'); loadEvents(); }
+        }
+
+        async function loadEvents() {
+            const { data } = await supabase.from('events').select('*').order('start_date');
+            const list = document.getElementById('eventsList');
+            list.innerHTML = '';
+            data.forEach(e => {
+                list.innerHTML += `
+                    <div class="item-card" style="border-color: var(--warning);">
+                        <h3>${e.title}</h3>
+                        <small>📅 ${e.start_date} to ${e.end_date}</small>
+                    </div>`;
+            });
+        }
+
+        // --- FEATURES: ASSIGNMENTS ---
+        async function createAssignment() {
+            let desc = document.getElementById('hw_desc').value;
+            // Basic AI Moderation (Keyword Filter)
+            const badWords = ['bad', 'stupid', 'hate']; 
+            if(badWords.some(w => desc.includes(w))) {
+                alert("Your message contains inappropriate words.");
+                return;
+            }
+
+            const { error } = await supabase.from('assignments').insert([{
+                title: document.getElementById('hw_title').value,
+                description: desc,
+                subject: document.getElementById('hw_subject').value,
+                grade_target: document.getElementById('hw_grade_target').value,
+                created_by: currentUser.id,
+                author_name: userProfile.full_name
+            }]);
+            if(!error) { document.getElementById('newHwForm').classList.add('hidden'); loadAssignments(); }
+        }
+
+        async function loadAssignments() {
+            // Only show assignments for user's grade
+            const { data } = await supabase.from('assignments')
+                .select('*')
+                .eq('grade_target', userProfile.grade)
+                .order('created_at', {ascending:false});
+                
+            const list = document.getElementById('assignmentsList');
+            list.innerHTML = '';
+            if(data.length === 0) list.innerHTML = '<p>No assignments for your grade.</p>';
+            data.forEach(a => {
+                list.innerHTML += `
+                    <div class="item-card">
+                        <div class="item-header">
+                            <b>${a.title}</b>
+                            <span class="badge badge-grade">${a.subject}</span>
+                        </div>
+                        <p>${a.description}</p>
+                        <small style="color:#666">By: ${a.author_name}</small>
+                    </div>`;
+            });
+        }
+
+        // --- FEATURES: CHAT ---
+        async function sendChat() {
+            const txt = document.getElementById('chatMsg').value;
+            if(!txt) return;
+            // Basic Moderation
+            if(txt.toLowerCase().includes('stupid')) { alert("Moderated!"); return; }
+
+            await supabase.from('messages').insert([{
+                content: txt,
+                user_name: userProfile.full_name,
+                grade_tag: userProfile.grade
+            }]);
+            document.getElementById('chatMsg').value = '';
+            loadChat();
+        }
+
+        async function loadChat() {
+            const { data } = await supabase.from('messages').select('*').order('created_at', {ascending:false}).limit(20);
+            const box = document.getElementById('chatBox');
+            box.innerHTML = '';
+            // Display reverse so newest is at bottom usually, but flex-col standard here
+            data.forEach(m => {
+                box.innerHTML += `
+                    <div class="msg">
+                        <div class="msg-meta">${m.user_name} [${m.grade_tag}] - ${new Date(m.created_at).toLocaleTimeString()}</div>
+                        ${m.content}
+                    </div>`;
+            });
+        }
+
+        // --- FEATURES: PROFILE ---
+        async function updateProfile() {
+            const updates = {
+                full_name: document.getElementById('p_name').value,
+                grade: document.getElementById('p_grade').value,
+                section: document.getElementById('p_section').value,
+            };
+            await supabase.from('profiles').update(updates).eq('id', currentUser.id);
+            alert("Profile Updated");
+            location.reload();
+        }
+
+    </script>
+</body>
+</html>
