@@ -1,861 +1,886 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Portal 7AC-9AC (Local Storage)</title>
-    
-    <style>
-        /* ========== CSS STYLES ========== */
-        :root {
-            --primary: #667eea;
-            --secondary: #764ba2;
-            --bg: #f3f4f6;
-            --text: #1f2937;
-            --white: #ffffff;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --success: #10b981;
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Student Portal — Classroom UI (Firebase)</title>
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+  <!-- Google Fonts: Poppins -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            min-height: 100vh;
-            color: var(--text);
-            transition: all 0.3s ease;
-        }
+  <!-- Material Symbols (icons) -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 
-        /* RTL Support for Arabic */
-        body[dir="rtl"] { text-align: right; }
+  <style>
+    :root{
+      --bg:#f5f7fa;
+      --surface:#ffffff;
+      --muted:#6b7280;
+      --primary:#1a73e8; /* google blue */
+      --accent:#f59e0b;
+      --danger:#e04848;
+      --shadow: 0 6px 18px rgba(19,24,31,0.06);
+      --radius:12px;
+      --maxWidth:1200px;
+      --gap:16px;
+      font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
 
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .hidden { display: none !important; }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 100%);
+      color:#0f172a;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:24px;
+      display:flex;
+      justify-content:center;
+    }
 
-        /* Auth Screen */
-        .auth-wrapper {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .auth-box {
-            background: var(--white);
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 450px;
-        }
-        .lang-switch {
-            position: absolute; top: 20px; right: 20px;
-            background: white; padding: 10px; border-radius: 50%;
-            cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            border: none; font-size: 20px;
-            z-index: 100;
-        }
+    .app {
+      width:100%;
+      max-width:var(--maxWidth);
+      display:grid;
+      grid-template-columns:260px 1fr;
+      gap:var(--gap);
+      align-items:start;
+    }
 
-        input, select, textarea {
-            width: 100%; padding: 12px; margin-bottom: 15px;
-            border: 2px solid #e5e7eb; border-radius: 8px;
-            font-size: 15px; outline: none;
-        }
-        input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+    /* Left sidebar */
+    .sidebar{
+      background:var(--surface);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:18px;
+      height:calc(100vh - 48px);
+      overflow:auto;
+      position:sticky;
+      top:24px;
+    }
+    .brand{
+      display:flex;gap:12px;align-items:center;margin-bottom:14px;
+    }
+    .logo {
+      width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--primary),#6b8af6);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;
+      font-size:18px;
+    }
+    .brand .title{font-weight:600;font-size:16px}
+    .brand .sub{font-size:12px;color:var(--muted)}
 
-        .btn {
-            width: 100%; padding: 12px; border: none; border-radius: 8px;
-            background: var(--primary); color: white; font-weight: bold;
-            cursor: pointer; transition: 0.3s;
-        }
-        .btn:hover { opacity: 0.9; transform: translateY(-2px); }
-        .btn-outline { background: transparent; color: #666; border: 2px solid #eee; margin-bottom: 10px; }
-        .btn-outline.active { background: var(--primary); color: white; border-color: var(--primary); }
-        .btn-small { width: auto; padding: 8px 16px; font-size: 14px; }
-        .btn-danger { background: var(--danger); }
+    nav.sidebar-nav{margin-top:8px;display:flex;flex-direction:column;gap:8px}
+    .nav-item{
+      display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;cursor:pointer;color:#0f172a;font-weight:500;
+    }
+    .nav-item:hover{background:#f3f6ff}
+    .nav-item.active{background:linear-gradient(90deg, rgba(26,115,232,0.08), rgba(26,115,232,0.04));border-left:4px solid var(--primary);padding-left:8px}
+    .icon { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; font-size:20px; color:var(--primary) }
 
-        /* Main Portal Layout */
-        .portal-header {
-            background: var(--white); padding: 15px 30px;
-            border-radius: 15px; margin-bottom: 20px;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
+    .profile-card{margin-top:16px; padding:12px; border-radius:10px; background:linear-gradient(90deg,#f8fafc,#fff); border:1px solid #eef2ff}
+    .profile-name{font-weight:600}
+    .profile-role{font-size:12px;color:var(--muted)}
 
-        .nav-grid {
-            display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;
-            background: var(--white); padding: 15px; border-radius: 15px;
-        }
-        .nav-item {
-            flex: 1; min-width: 120px; text-align: center; padding: 12px;
-            background: #f8fafc; border-radius: 10px; cursor: pointer;
-            font-weight: 600; color: #64748b; transition: 0.3s;
-        }
-        .nav-item:hover, .nav-item.active { background: var(--primary); color: white; }
+    /* main content */
+    .main {
+      display:flex;
+      flex-direction:column;
+      gap:var(--gap);
+    }
 
-        .content-card {
-            background: var(--white); padding: 25px; border-radius: 15px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05); min-height: 400px;
-        }
+    .topbar{
+      background:transparent;display:flex;justify-content:space-between;align-items:center;
+      padding:8px 0;
+    }
+    .top-left{display:flex;align-items:center;gap:12px}
+    .search {
+      display:flex;align-items:center;gap:8px;background:var(--surface);border-radius:12px;padding:8px 10px;box-shadow:var(--shadow);
+      min-width:420px;max-width:640px;
+    }
+    .search input{border:0;outline:0;background:transparent;font-size:14px;width:100%}
+    .top-actions{display:flex;gap:10px;align-items:center}
 
-        /* Items (Projects, Assignments) */
-        .item-card {
-            border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px;
-            margin-bottom: 15px; border-left: 4px solid var(--primary);
-        }
-        .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .badge {
-            padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;
-        }
-        .badge-admin { background: #fef3c7; color: #d97706; }
-        .badge-grade { background: #dbeafe; color: #1e40af; }
+    .card{
+      background:var(--surface);
+      border-radius:var(--radius);
+      padding:18px;
+      box-shadow:var(--shadow);
+    }
 
-        /* Chat */
-        .chat-box { height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .msg { margin-bottom: 10px; padding: 10px; border-radius: 8px; background: #f1f5f9; }
-        .msg-meta { font-size: 11px; color: #94a3b8; margin-bottom: 2px; }
+    .grid{
+      display:grid;grid-template-columns:repeat(2,1fr);gap:16px;
+    }
 
-        /* Profile & Authors */
-        .author-card {
-            background: linear-gradient(to right, #e0e7ff, #f3e8ff);
-            padding: 20px; border-radius: 12px; border: 1px solid #c7d2fe;
-        }
-    </style>
+    .section-title{
+      display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;
+    }
+
+    /* chat area */
+    .chat-area{display:flex;flex-direction:column;gap:12px}
+    .convo-select{display:flex;gap:12px;align-items:center}
+    .convo-select select{padding:8px;border-radius:8px;border:1px solid #e6eefc;background:#fbfdff}
+    .chat-window{height:420px;border-radius:10px;border:1px solid #eef2ff;padding:12px;overflow:auto;background:#f8fbff}
+    .message{padding:10px;border-radius:8px;background:#eef6ff;margin-bottom:8px}
+    .message .meta{font-size:12px;color:var(--muted);margin-bottom:6px}
+
+    .chat-input{display:flex;gap:10px;align-items:center}
+    .chat-input input{flex:1;padding:12px;border-radius:10px;border:1px solid #eef2ff;background:#ffffff}
+    .btn{padding:10px 12px;border-radius:10px;border:0;background:var(--primary);color:white;cursor:pointer;font-weight:600}
+    .btn.ghost{background:transparent;border:1px solid #e6eefc;color:var(--primary)}
+    .btn.danger{background:var(--danger)}
+
+    /* admin lists */
+    .list-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;border:1px solid #f1f5f9;margin-bottom:8px;background:#fff}
+
+    /* responsive */
+    @media (max-width: 980px){
+      .app{grid-template-columns: 1fr; padding-bottom:160px}
+      .sidebar{position:relative;height:auto}
+      .search{min-width:unset; width:100%}
+      .grid{grid-template-columns:1fr}
+      .chat-window{height:300px}
+    }
+  </style>
 </head>
 <body>
-
-    <button class="lang-switch" onclick="toggleLanguage()">🌐</button>
-
-    <div id="authScreen" class="auth-wrapper">
-        <div class="auth-box">
-            <h1 style="text-align: center; color: var(--primary); margin-bottom: 20px;" data-t="portalTitle">Student Portal</h1>
-            
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <button class="btn btn-outline active" onclick="switchAuthMode('login')" data-t="loginBtn">Login</button>
-                <button class="btn btn-outline" onclick="switchAuthMode('register')" data-t="registerBtn">Register</button>
-            </div>
-
-            <form id="loginForm">
-                <input type="email" id="l_email" placeholder="Email" required>
-                <input type="password" id="l_password" placeholder="Password" required>
-                <button type="submit" class="btn" data-t="loginBtn">Login</button>
-            </form>
-
-            <form id="registerForm" class="hidden">
-                <input type="text" id="r_name" placeholder="Full Name" required>
-                <input type="email" id="r_email" placeholder="Email" required>
-                <input type="password" id="r_password" placeholder="Password" required>
-                
-                <select id="r_grade" required>
-                    <option value="" disabled selected>Select Grade</option>
-                    <option value="7AC">7AC (OULA)</option>
-                    <option value="8AC">8AC (TANIA)</option>
-                    <option value="9AC">9AC (TALTA)</option>
-                </select>
-                
-                <input type="text" id="r_section" placeholder="Section (e.g., 1, 2, 3)" required>
-                <button type="submit" class="btn" data-t="registerBtn">Register</button>
-            </form>
+  <div class="app" role="application">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="logo">SP</div>
+        <div>
+          <div class="title">Student Portal</div>
+          <div class="sub">Classroom UI</div>
         </div>
-    </div>
+      </div>
 
-    <div id="pendingScreen" class="auth-wrapper hidden">
-        <div class="auth-box" style="text-align: center;">
-            <h2 style="color: var(--warning);" data-t="pendingTitle">Pending Approval</h2>
-            <p style="margin: 20px 0;" data-t="pendingMsg">You have been added to the waiting list. An administrator must approve your account.</p>
-            <button class="btn btn-danger" onclick="doLogout()" data-t="logout">Logout</button>
+      <nav class="sidebar-nav" role="navigation">
+        <div class="nav-item active" data-tab="dashboard"><span class="material-symbols-outlined icon">home</span> Dashboard</div>
+        <div class="nav-item" data-tab="projects"><span class="material-symbols-outlined icon">work</span> Projects</div>
+        <div class="nav-item" data-tab="events"><span class="material-symbols-outlined icon">event</span> Events</div>
+        <div class="nav-item" data-tab="assignments"><span class="material-symbols-outlined icon">assignment</span> Assignments</div>
+        <div class="nav-item" data-tab="conversations"><span class="material-symbols-outlined icon">chat_bubble</span> Conversations</div>
+        <div class="nav-item" data-tab="clubs"><span class="material-symbols-outlined icon">account_balance</span> Clubs</div>
+        <div class="nav-item" data-tab="reports"><span class="material-symbols-outlined icon">report</span> Reports</div>
+        <div class="nav-item" data-tab="profile"><span class="material-symbols-outlined icon">person</span> Profile</div>
+        <div id="adminNav" class="nav-item" data-tab="admin" style="display:none"><span class="material-symbols-outlined icon">admin_panel_settings</span> Admin Panel</div>
+      </nav>
+
+      <div class="profile-card" style="margin-top:14px">
+        <div class="profile-name" id="sideName">Guest</div>
+        <div class="profile-role small-muted" id="sideRole">Not signed in</div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button id="sidebarLogout" class="btn ghost" style="flex:1">Logout</button>
+        <button id="openLogin" class="btn" style="display:none">Login</button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <!-- topbar -->
+      <div class="topbar">
+        <div class="top-left">
+          <div class="search">
+            <span class="material-symbols-outlined" style="color:var(--muted)">search</span>
+            <input id="globalSearch" placeholder="Search projects, groups, assignments..." />
+          </div>
         </div>
-    </div>
-
-    <div id="portalScreen" class="container hidden">
-        <header class="portal-header">
-            <div>
-                <h2 data-t="portalTitle">Student Portal</h2>
-                <small id="welcomeUser">Welcome, User</small>
-            </div>
-            <div>
-                <span id="adminBadge" class="badge badge-admin hidden">ADMIN</span>
-                <button class="btn btn-small btn-danger" onclick="doLogout()" data-t="logout">Logout</button>
-            </div>
-        </header>
-
-        <nav class="nav-grid">
-            <div class="nav-item active" onclick="showTab('projects')" data-t="tabProjects">Projects</div>
-            <div class="nav-item" onclick="showTab('events')" data-t="tabEvents">Events</div>
-            <div class="nav-item" onclick="showTab('assignments')" data-t="tabHomework">Assignments</div>
-            <div class="nav-item" onclick="showTab('chat')" data-t="tabChat">Conversations</div>
-            <div class="nav-item" onclick="showTab('profile')" data-t="tabProfile">Profile</div>
-            <div class="nav-item" onclick="showTab('authors')" data-t="tabAuthors">Authors</div>
-            <div class="nav-item hidden" id="adminNav" onclick="showTab('admin')" data-t="tabAdmin">Admin Panel</div>
-        </nav>
-
-        <div class="content-card">
-            
-            <div id="tab-projects">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                    <h3 data-t="tabProjects">Projects</h3>
-                    <button class="btn btn-small" onclick="document.getElementById('newProjectForm').classList.toggle('hidden')">New Project</button>
-                </div>
-
-                <div id="newProjectForm" class="hidden" style="background: #f8fafc; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-                    <input type="text" id="proj_name" placeholder="Project Name">
-                    <textarea id="proj_desc" placeholder="Description"></textarea>
-                    <select id="proj_type">
-                        <option value="public">Public</option>
-                        <option value="private">Private (Requires Key)</option>
-                    </select>
-                    <button class="btn" onclick="createProject()">Create Project</button>
-                </div>
-                <div id="projectsList"></div>
-            </div>
-
-            <div id="tab-events" class="hidden">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                    <h3 data-t="tabEvents">Events</h3>
-                    <button id="btnCreateEvent" class="btn btn-small hidden" onclick="document.getElementById('newEventForm').classList.toggle('hidden')">Add Event</button>
-                </div>
-
-                <div id="newEventForm" class="hidden" style="background: #f8fafc; padding: 15px; margin-bottom: 20px;">
-                    <input type="text" id="evt_title" placeholder="Event Title">
-                    <div style="display: flex; gap: 10px;">
-                        <input type="date" id="evt_start">
-                        <input type="date" id="evt_end">
-                    </div>
-                    <button class="btn" onclick="createEvent()">Post Event</button>
-                </div>
-                <div id="eventsList"></div>
-            </div>
-
-            <div id="tab-assignments" class="hidden">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                    <h3 data-t="tabHomework">Assignments</h3>
-                    <button id="btnPostAssignment" class="btn btn-small hidden" onclick="document.getElementById('newHwForm').classList.toggle('hidden')">Post Assignment</button>
-                </div>
-
-                <div id="newHwForm" class="hidden" style="background: #f8fafc; padding: 15px; margin-bottom: 20px;">
-                    <input type="text" id="hw_title" placeholder="Assignment Title">
-                    <textarea id="hw_desc" placeholder="Details (Moderated)"></textarea>
-                    <div style="display: flex; gap: 10px;">
-                        <select id="hw_subject">
-                            <option value="Arabic">Arabic</option>
-                            <option value="French">French</option>
-                            <option value="English">English</option>
-                            <option value="Math">Mathematics</option>
-                            <option value="History">History</option>
-                            <option value="Physics">Physics</option>
-                            <option value="SVT">Science (SVT)</option>
-                            <option value="Informatique">Informatique</option>
-                            <option value="Art">Art</option>
-                            <option value="Music">Music</option>
-                        </select>
-                        <select id="hw_grade_target">
-                            <option value="7AC">7AC</option>
-                            <option value="8AC">8AC</option>
-                            <option value="9AC">9AC</option>
-                        </select>
-                    </div>
-                    <button class="btn" onclick="createAssignment()">Post</button>
-                </div>
-                <div id="assignmentsList"></div>
-            </div>
-
-            <div id="tab-chat" class="hidden">
-                <h3 data-t="tabChat">Student Conversation</h3>
-                <div id="chatBox" class="chat-box"></div>
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="chatMsg" placeholder="Type a message..." style="margin-bottom: 0;">
-                    <button class="btn btn-small" style="width: 100px;" onclick="sendChat()">Send</button>
-                </div>
-            </div>
-
-            <div id="tab-profile" class="hidden">
-                <h3 data-t="tabProfile">My Profile</h3>
-                <div style="max-width: 500px; margin: 20px auto;">
-                    <label>Full Name</label>
-                    <input type="text" id="p_name">
-                    <label>Grade</label>
-                    <select id="p_grade">
-                        <option value="7AC">7AC</option>
-                        <option value="8AC">8AC</option>
-                        <option value="9AC">9AC</option>
-                    </select>
-                    <label>Section</label>
-                    <input type="text" id="p_section">
-                    <button class="btn" onclick="updateProfile()">Save Changes</button>
-                </div>
-            </div>
-
-            <div id="tab-authors" class="hidden">
-                <h3 data-t="tabAuthors">Authors & Credits</h3>
-                <div class="author-card">
-                    <h2>Yasser Ouamoussi</h2>
-                    <p><strong>Grade:</strong> 7AC1 - Number 21</p>
-                    <p><strong>Role:</strong> Administrator & Lead Developer</p>
-                    <p style="margin-top: 10px;">Created this platform to help students connect and manage their school life.</p>
-                </div>
-            </div>
-
-            <div id="tab-admin" class="hidden">
-                <h3 data-t="adminPendingTitle">Pending Approvals</h3>
-                <p style="font-size: 14px; margin-bottom: 15px;">Approve users to grant them access to the portal.</p>
-                <div id="pendingUsersList" style="margin-bottom: 30px;"></div>
-
-                <hr style="margin: 20px 0;">
-
-                <h3 data-t="adminUsersTitle">User Management</h3>
-                <p style="font-size: 14px; margin-bottom: 15px;">Change roles, ban, or unban existing users.</p>
-                <div id="approvedUsersList"></div>
-            </div>
-
+        <div class="top-actions">
+          <div style="text-align:right">
+            <div id="welcomeText" style="font-weight:600">Welcome</div>
+            <div class="small-muted" id="welcomeSub">Please sign in</div>
+          </div>
         </div>
+      </div>
+
+      <!-- content area -->
+      <section id="dashboard" class="card">
+        <div class="section-title">
+          <div>
+            <h3 style="margin:0">Dashboard</h3>
+            <div class="small-muted">Overview of your activities</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn ghost" id="btnNewProject">New Project</button>
+            <button class="btn ghost" id="btnNewAssignment">New Assignment</button>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <h4 style="margin-top:0">Projects</h4>
+            <div id="projectsList" style="margin-top:8px"></div>
+          </div>
+
+          <div class="card">
+            <h4 style="margin-top:0">Upcoming Events</h4>
+            <div id="eventsList" style="margin-top:8px"></div>
+          </div>
+
+          <div class="card">
+            <h4 style="margin-top:0">Assignments</h4>
+            <div id="assignmentsList" style="margin-top:8px"></div>
+          </div>
+
+          <div class="card">
+            <h4 style="margin-top:0">Conversations</h4>
+            <div style="margin-top:8px">
+              <div style="display:flex;gap:8px;align-items:center">
+                <select id="conversationSelector" style="flex:1;padding:10px;border-radius:8px;border:1px solid #eef2ff"></select>
+                <button class="btn" id="btnOpenChat">Open</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Conversations card (hidden by default) -->
+      <section id="conversations" class="card" style="display:none">
+        <div class="section-title">
+          <div>
+            <h3 style="margin:0">Conversations</h3>
+            <div class="small-muted">Global chat, study groups, and club chats</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <input id="newConvName" placeholder="Create new group or club" style="padding:8px;border-radius:8px;border:1px solid #eef2ff" />
+            <select id="newConvType" style="padding:8px;border-radius:8px;border:1px solid #eef2ff">
+              <option value="group">Study Group</option>
+              <option value="club">Club (private)</option>
+            </select>
+            <button class="btn" id="createConvBtn">Create</button>
+          </div>
+        </div>
+
+        <div class="chat-area">
+          <div class="convo-select">
+            <select id="convList" style="padding:10px;border-radius:8px;border:1px solid #eef2ff;flex:1"></select>
+            <div style="display:flex;gap:8px">
+              <button class="btn ghost" id="joinLeaveBtn">Join</button>
+              <button class="btn ghost" id="openSettingsBtn">Settings</button>
+            </div>
+          </div>
+
+          <div class="chat-window" id="chatWindow"></div>
+
+          <div class="chat-input">
+            <input id="chatInput" placeholder="Write a message..." />
+            <button class="btn" id="sendBtn">Send</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Clubs -->
+      <section id="clubs" class="card" style="display:none">
+        <div class="section-title">
+          <div>
+            <h3 style="margin:0">Clubs</h3>
+            <div class="small-muted">Clubs have private chats and funds</div>
+          </div>
+          <div></div>
+        </div>
+
+        <div id="clubsList"></div>
+      </section>
+
+      <!-- Reports -->
+      <section id="reports" class="card" style="display:none">
+        <div class="section-title">
+          <div><h3 style="margin:0">Reports</h3><div class="small-muted">Create and review reports</div></div>
+          <div></div>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-bottom:12px">
+          <input id="reportTarget" placeholder="Target ID (user, conv, message...)" style="padding:8px;border-radius:8px;border:1px solid #eef2ff" />
+          <input id="reportMsg" placeholder="Report reason" style="padding:8px;border-radius:8px;border:1px solid #eef2ff" />
+          <button class="btn" id="createReportBtn">Report</button>
+        </div>
+
+        <div id="reportsList"></div>
+      </section>
+
+      <!-- Profile -->
+      <section id="profile" class="card" style="display:none">
+        <div class="section-title">
+          <div><h3 style="margin:0">My Profile</h3><div class="small-muted">Edit your profile</div></div>
+          <div></div>
+        </div>
+
+        <div style="max-width:560px">
+          <label class="small-muted">Full name</label>
+          <input id="p_name" style="padding:10px;border-radius:8px;border:1px solid #eef2ff" />
+
+          <label class="small-muted" style="margin-top:8px">Grade</label>
+          <select id="p_grade" style="padding:10px;border-radius:8px;border:1px solid #eef2ff">
+            <option value="7AC">7AC</option>
+            <option value="8AC">8AC</option>
+            <option value="9AC">9AC</option>
+          </select>
+
+          <label class="small-muted" style="margin-top:8px">Section</label>
+          <input id="p_section" style="padding:10px;border-radius:8px;border:1px solid #eef2ff" />
+
+          <label class="small-muted" style="margin-top:8px">Role</label>
+          <input id="p_role" readonly style="padding:10px;border-radius:8px;border:1px solid #eef2ff;background:#fbfbfb" />
+
+          <div style="margin-top:12px">
+            <button class="btn" id="saveProfileBtn">Save Changes</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Admin Panel -->
+      <section id="admin" class="card" style="display:none">
+        <div class="section-title">
+          <div><h3 style="margin:0">Admin Panel</h3><div class="small-muted">Approve users, manage roles, resolve reports</div></div>
+          <div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <h4>Pending Approvals</h4>
+            <div id="pendingUsersList"></div>
+          </div>
+          <div>
+            <h4>Users</h4>
+            <div id="approvedUsersList"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <h4>Reports</h4>
+          <div id="reportsAdminList"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Authentication modal (lightweight) -->
+  <div id="authModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.45);align-items:center;justify-content:center">
+    <div style="background:var(--surface);padding:22px;border-radius:12px;max-width:520px;width:100%;box-shadow:var(--shadow)">
+      <h3 style="margin:0 0 6px 0">Sign in / Register</h3>
+      <div class="small-muted" style="margin-bottom:12px">Create account or login with email & password</div>
+
+      <div style="display:flex;gap:12px;margin-bottom:8px">
+        <input id="modalEmail" placeholder="Email" style="flex:1;padding:10px;border-radius:8px;border:1px solid #eef2ff" />
+        <input id="modalPass" type="password" placeholder="Password" style="flex:1;padding:10px;border-radius:8px;border:1px solid #eef2ff" />
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn ghost" id="modalRegister">Register</button>
+        <button class="btn" id="modalLogin">Login</button>
+      </div>
+      <div style="margin-top:10px" class="small-muted">Admins must approve new accounts before access.</div>
     </div>
+  </div>
 
-    <script>
-        // ================= CONFIGURATION (Local Storage Keys) =================
-        const LS_USER_KEY = 'portal_current_user';
-        const LS_USERS_KEY = 'portal_users';
-        const LS_PROJECTS_KEY = 'portal_projects';
-        const LS_EVENTS_KEY = 'portal_events';
-        const LS_ASSIGNMENTS_KEY = 'portal_assignments';
-        const LS_MESSAGES_KEY = 'portal_messages';
-        
-        // ================= TRANSLATIONS =================
-        const dictionary = {
-            en: {
-                portalTitle: "Student Portal",
-                loginBtn: "Login",
-                registerBtn: "Register",
-                pendingTitle: "Pending Approval",
-                pendingMsg: "Your account is on the waiting list. Please wait for an Admin.",
-                logout: "Logout",
-                tabProjects: "Projects",
-                tabEvents: "Events",
-                tabHomework: "Assignments",
-                tabChat: "Conversations",
-                tabProfile: "Profile",
-                tabAuthors: "Authors",
-                tabAdmin: "Admin Panel", // NEW
-                adminPendingTitle: "Pending Approvals", // NEW
-                adminUsersTitle: "User Management" // NEW
-            },
-            fr: {
-                portalTitle: "Portail Étudiant",
-                loginBtn: "Connexion",
-                registerBtn: "S'inscrire",
-                pendingTitle: "En Attente",
-                pendingMsg: "Votre compte est sur liste d'attente. Veuillez attendre un administrateur.",
-                logout: "Déconnexion",
-                tabProjects: "Projets",
-                tabEvents: "Événements",
-                tabHomework: "Devoirs",
-                tabChat: "Discussions",
-                tabProfile: "Profil",
-                tabAuthors: "Auteurs",
-                tabAdmin: "Panneau Admin", // NEW
-                adminPendingTitle: "Approbations En Attente", // NEW
-                adminUsersTitle: "Gestion des Utilisateurs" // NEW
-            },
-            ar: {
-                portalTitle: "بوابة الطالب",
-                loginBtn: "تسجيل الدخول",
-                registerBtn: "إنشاء حساب",
-                pendingTitle: "قيد المراجعة",
-                pendingMsg: "حسابك في قائمة الانتظار. يرجى انتظار موافقة المسؤول.",
-                logout: "خروج",
-                tabProjects: "المشاريع",
-                tabEvents: "الأحداث",
-                tabHomework: "الواجبات",
-                tabChat: "المحادثات",
-                tabProfile: "الملف الشخصي",
-                tabAuthors: "المطورون",
-                tabAdmin: "لوحة التحكم", // NEW
-                adminPendingTitle: "الطلاب قيد المراجعة", // NEW
-                adminUsersTitle: "إدارة المستخدمين" // NEW
-            }
+  <!-- Firebase + App Script (modular SDK) -->
+  <script type="module">
+  // ---------- Firebase imports ----------
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.17.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.17.0/firebase-auth.js";
+  import {
+    getFirestore, doc, setDoc, getDoc, addDoc, collection, query, where, getDocs,
+    onSnapshot, serverTimestamp, updateDoc, orderBy, limit, writeBatch, increment
+  } from "https://www.gstatic.com/firebasejs/10.17.0/firebase-firestore.js";
+
+  // ---------- Your Firebase config (as you provided) ----------
+  const firebaseConfig = {
+    apiKey: "AIzaSyApBvfatNOG71P8SUB_uYT08zGeOmC8VlY",
+    authDomain: "student-portal-61ead.firebaseapp.com",
+    projectId: "student-portal-61ead",
+    storageBucket: "student-portal-61ead.firebasestorage.app",
+    messagingSenderId: "415484265376",
+    appId: "1:415484265376:web:41d53b79ac5059a0a35ac5",
+    measurementId: "G-JHCC3HQ20M"
+  };
+
+  // ---------- Initialize Firebase ----------
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // ---------- DOM references ----------
+  const navItems = document.querySelectorAll('.nav-item');
+  const sections = {
+    dashboard: document.getElementById('dashboard'),
+    projects: document.getElementById('projectsList'),
+    events: document.getElementById('eventsList'),
+    assignments: document.getElementById('assignmentsList'),
+    conversations: document.getElementById('conversations'),
+    clubs: document.getElementById('clubs'),
+    reports: document.getElementById('reports'),
+    profile: document.getElementById('profile'),
+    admin: document.getElementById('admin'),
+  };
+  const conversationSelector = document.getElementById('conversationSelector');
+  const convList = document.getElementById('convList');
+  const chatWindow = document.getElementById('chatWindow');
+  const chatInput = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const createConvBtn = document.getElementById('createConvBtn');
+  const newConvName = document.getElementById('newConvName');
+  const newConvType = document.getElementById('newConvType');
+  const joinLeaveBtn = document.getElementById('joinLeaveBtn');
+  const openSettingsBtn = document.getElementById('openSettingsBtn');
+  const btnOpenChat = document.getElementById('btnOpenChat');
+  const welcomeText = document.getElementById('welcomeText');
+  const welcomeSub  = document.getElementById('welcomeSub');
+  const sideName = document.getElementById('sideName');
+  const sideRole = document.getElementById('sideRole');
+  const sidebarLogout = document.getElementById('sidebarLogout');
+  const adminNav = document.getElementById('adminNav');
+  const reportsList = document.getElementById('reportsList');
+  const reportsAdminList = document.getElementById('reportsAdminList');
+  const pendingUsersList = document.getElementById('pendingUsersList');
+  const approvedUsersList = document.getElementById('approvedUsersList');
+  const convSelectorMain = document.getElementById('conversationSelector');
+  const btnNewProject = document.getElementById('btnNewProject');
+  const btnNewAssignment = document.getElementById('btnNewAssignment');
+  const createReportBtn = document.getElementById('createReportBtn');
+  const reportTarget = document.getElementById('reportTarget');
+  const reportMsg = document.getElementById('reportMsg');
+
+  const p_name = document.getElementById('p_name');
+  const p_grade = document.getElementById('p_grade');
+  const p_section = document.getElementById('p_section');
+  const p_role = document.getElementById('p_role');
+  const saveProfileBtn = document.getElementById('saveProfileBtn');
+
+  const projectsListUI = document.getElementById('projectsList');
+  const eventsListUI = document.getElementById('eventsList');
+  const assignmentsListUI = document.getElementById('assignmentsList');
+  const clubsListUI = document.getElementById('clubsList');
+
+  // Auth modal
+  const authModal = document.getElementById('authModal');
+  const modalEmail = document.getElementById('modalEmail');
+  const modalPass = document.getElementById('modalPass');
+  const modalLogin = document.getElementById('modalLogin');
+  const modalRegister = document.getElementById('modalRegister');
+  const openLogin = document.getElementById('openLogin');
+
+  // State
+  let currentUser = null;
+  let currentUserDoc = null;
+  let currentConvId = null;
+  let convMessagesUnsub = null;
+  let convsUnsub = null;
+  let usersUnsub = null;
+  let reportsUnsub = null;
+
+  // ---------- UI helpers ----------
+  function showSection(tab){
+    // highlight nav
+    navItems.forEach(n => n.classList.remove('active'));
+    const active = Array.from(navItems).find(n => n.dataset.tab === tab);
+    if (active) active.classList.add('active');
+
+    // hide all 'page' sections except dashboard which is top-level. We'll show/hide major containers
+    document.getElementById('dashboard').style.display = tab === 'dashboard' ? 'block' : 'none';
+    document.getElementById('conversations').style.display = tab === 'conversations' ? 'block' : 'none';
+    document.getElementById('clubs').style.display = tab === 'clubs' ? 'block' : 'none';
+    document.getElementById('reports').style.display = tab === 'reports' ? 'block' : 'none';
+    document.getElementById('profile').style.display = tab === 'profile' ? 'block' : 'none';
+    document.getElementById('admin').style.display = tab === 'admin' ? 'block' : 'none';
+  }
+
+  navItems.forEach(n => n.addEventListener('click', () => showSection(n.dataset.tab)));
+
+  // ---------- Authentication ----------
+  openLogin.addEventListener('click', () => { authModal.style.display = 'flex' });
+  modalLogin.addEventListener('click', async () => {
+    const email = modalEmail.value.trim(), pass = modalPass.value;
+    if (!email || !pass) { alert('Provide email & password'); return; }
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      authModal.style.display = 'none';
+      modalEmail.value = ''; modalPass.value = '';
+    } catch (err) { console.error(err); alert('Login error: ' + err.message); }
+  });
+  modalRegister.addEventListener('click', async () => {
+    const email = modalEmail.value.trim(), pass = modalPass.value;
+    if (!email || !pass) { alert('Provide email & password'); return; }
+    const name = prompt('Full name for your profile:') || '';
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      // create user doc
+      await setDoc(doc(db, 'users', cred.user.uid), {
+        name, email, grade: '7AC', section: '', role: 'member', approved: false, createdAt: serverTimestamp()
+      });
+      await updateProfile(cred.user, { displayName: name });
+      alert('Registered. Wait for admin approval.');
+      authModal.style.display = 'none';
+      modalEmail.value = ''; modalPass.value = '';
+    } catch (err) { console.error(err); alert('Register error: ' + err.message); }
+  });
+
+  sidebarLogout.addEventListener('click', async () => { await signOut(auth); });
+
+  // ---------- On Auth Change ----------
+  onAuthStateChanged(auth, async (user) => {
+    // unsubscribe previous listeners
+    if (convsUnsub) convsUnsub();
+    if (convMessagesUnsub) convMessagesUnsub();
+    if (usersUnsub) usersUnsub();
+    if (reportsUnsub) reportsUnsub();
+
+    if (!user) {
+      currentUser = null; currentUserDoc = null;
+      welcomeText.textContent = 'Welcome';
+      welcomeSub.textContent = 'Please sign in';
+      sideName.textContent = 'Guest';
+      sideRole.textContent = 'Not signed in';
+      adminNav.style.display = 'none';
+      openLogin.style.display = 'inline-block';
+      sidebarLogout.style.display = 'none';
+      // clear UI
+      projectsListUI.innerHTML = ''; eventsListUI.innerHTML=''; assignmentsListUI.innerHTML=''; convSelectorMain.innerHTML=''; convList.innerHTML=''; chatWindow.innerHTML='';
+      return;
+    }
+
+    currentUser = user;
+
+    // ensure user doc exists
+    const ud = await getDoc(doc(db, 'users', user.uid));
+    if (!ud.exists()) {
+      await setDoc(doc(db,'users', user.uid), { name: user.displayName || '', email: user.email, grade:'7AC', section:'', role:'member', approved:false, createdAt: serverTimestamp() });
+    }
+    const udoc = await getDoc(doc(db, 'users', user.uid));
+    currentUserDoc = udoc.data();
+
+    // if not approved -> show sign-in prompt and prevent access
+    if (!currentUserDoc.approved) {
+      // minimal UI: show message and hide most features
+      welcomeText.textContent = 'Waiting approval';
+      welcomeSub.textContent = 'Your account needs admin approval.';
+      sideName.textContent = currentUserDoc.name || currentUser.email;
+      sideRole.textContent = `${currentUserDoc.role || 'member'} (unapproved)`;
+      openLogin.style.display = 'none';
+      sidebarLogout.style.display = 'inline-block';
+      // do not subscribe further
+      return;
+    }
+
+    // approved user — show portal
+    welcomeText.textContent = `Hi, ${currentUserDoc.name || currentUser.email}`;
+    welcomeSub.textContent = `${currentUserDoc.grade || ''} • ${currentUserDoc.section || ''}`;
+    sideName.textContent = currentUserDoc.name || currentUser.email;
+    sideRole.textContent = currentUserDoc.role || 'member';
+    openLogin.style.display = 'none';
+    sidebarLogout.style.display = 'inline-block';
+
+    // show admin nav if admin
+    if (currentUserDoc.role === 'admin') adminNav.style.display = 'flex'; else adminNav.style.display = 'none';
+
+    // Real-time: conversations list
+    convsUnsub = onSnapshot(collection(db, 'conversations'), (snap) => {
+      convSelectorMain.innerHTML = '';
+      convList.innerHTML = '';
+      let hasGlobal = false;
+      const rows = [];
+      snap.forEach(d => {
+        const data = d.data();
+        rows.push({ id:d.id, ...data });
+        if (data.name === 'Global') hasGlobal = true;
+      });
+      if (!hasGlobal) {
+        // create global conversation once
+        addDoc(collection(db, 'conversations'), { name:'Global', type:'global', owner:null, members: [], createdAt: serverTimestamp(), funds: 0 });
+        return;
+      }
+      // show visible conversations in selectors (global + group visible; club visible only to members or admin)
+      rows.forEach(r => {
+        const canSee = r.type === 'global' || r.type === 'group' || (r.type === 'club' && (r.members||[]).includes(currentUser.uid)) || currentUserDoc.role === 'admin';
+        if (!canSee) return;
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = `${r.name} ${r.type === 'club' ? ' (Club)':''}`;
+        convSelectorMain.appendChild(opt);
+
+        const opt2 = opt.cloneNode(true);
+        convList.appendChild(opt2);
+      });
+      // select first
+      if (convSelectorMain.options.length && !currentConvId) {
+        convSelectorMain.selectedIndex = 0;
+      }
+      if (convList.options.length && !currentConvId) {
+        convList.selectedIndex = 0;
+      }
+    });
+
+    // Projects, Events, Assignments (simple lists)
+    onSnapshot(collection(db, 'projects'), snap => {
+      projectsListUI.innerHTML = '';
+      snap.forEach(d => {
+        const p = d.data();
+        const el = document.createElement('div');
+        el.className = 'list-item';
+        el.innerHTML = `<div><strong>${p.name}</strong><div class="small-muted">${p.desc || ''}</div></div>`;
+        projectsListUI.appendChild(el);
+      });
+    });
+    onSnapshot(collection(db, 'events'), snap => {
+      eventsListUI.innerHTML = '';
+      snap.forEach(d => {
+        const e = d.data();
+        const el = document.createElement('div');
+        el.className = 'list-item';
+        el.innerHTML = `<div><strong>${e.title}</strong><div class="small-muted">${e.start || ''} → ${e.end || ''}</div></div>`;
+        eventsListUI.appendChild(el);
+      });
+    });
+    onSnapshot(collection(db, 'assignments'), snap => {
+      assignmentsListUI.innerHTML = '';
+      snap.forEach(d => {
+        const a = d.data();
+        const el = document.createElement('div');
+        el.className = 'list-item';
+        el.innerHTML = `<div><strong>${a.title}</strong><div class="small-muted">${a.subject || ''}</div><div>${a.desc || ''}</div></div>`;
+        assignmentsListUI.appendChild(el);
+      });
+    });
+
+    // Clubs list (public summary; membership enforced elsewhere)
+    onSnapshot(collection(db, 'conversations'), snap => {
+      clubsListUI.innerHTML = '';
+      snap.forEach(d => {
+        const r = d.data();
+        if (r.type !== 'club') return;
+        const el = document.createElement('div');
+        el.className = 'list-item';
+        const members = (r.members || []).length;
+        el.innerHTML = `<div><strong>${r.name}</strong><div class="small-muted">Members: ${members} • Funds: ${r.funds || 0}</div></div>
+                        <div style="display:flex;gap:8px"><button class="btn ghost" data-id="${d.id}" data-action="open">Open</button></div>`;
+        clubsListUI.appendChild(el);
+      });
+      // attach open handlers
+      clubsListUI.querySelectorAll('button[data-action="open"]').forEach(btn => {
+        btn.onclick = () => {
+          const id = btn.dataset.id;
+          // select conv
+          convList.value = id;
+          openConversationById(id);
+          showSection('conversations');
         };
+      });
+    });
 
-        // ================= STATE =================
-        let currentUser = null;
-        let currentLang = navigator.language.startsWith('ar') ? 'ar' : (navigator.language.startsWith('fr') ? 'fr' : 'en');
-        let users = JSON.parse(localStorage.getItem(LS_USERS_KEY) || '[]');
-
-        // --- DEMO ADMIN CREATION ---
-        // If no users exist, create a default Admin user (email: admin@portal.com, pass: 123456)
-        if (!users.find(u => u.email === 'admin@portal.com')) {
-            const adminUser = {
-                id: 'admin_123',
-                email: 'admin@portal.com',
-                password: '123456', // Stored in plain text for simplicity
-                full_name: 'Portal Admin',
-                grade: '9AC',
-                section: 'A',
-                status: 'approved',
-                is_admin: true
-            };
-            users.push(adminUser);
-            localStorage.setItem(LS_USERS_KEY, JSON.stringify(users));
-            alert("Demo Admin Created: admin@portal.com / 123456");
+    // Users & Reports for admin
+    usersUnsub = onSnapshot(collection(db, 'users'), snap => {
+      pendingUsersList.innerHTML = '';
+      approvedUsersList.innerHTML = '';
+      snap.forEach(d => {
+        const u = d.data();
+        const id = d.id;
+        const row = document.createElement('div');
+        row.className = 'list-item';
+        row.innerHTML = `<div><strong>${u.name || u.email}</strong><div class="small-muted">${u.grade || ''} • ${u.section || ''} • role: ${u.role}</div></div>
+                         <div></div>`;
+        if (!u.approved) {
+          const approveBtn = document.createElement('button'); approveBtn.className='btn'; approveBtn.textContent='Approve';
+          approveBtn.onclick = async () => { await updateDoc(doc(db,'users',id), { approved:true }); alert('Approved'); };
+          row.querySelector('div:last-child').appendChild(approveBtn);
+          pendingUsersList.appendChild(row);
+        } else {
+          const roleBtn = document.createElement('button'); roleBtn.className='btn ghost'; roleBtn.textContent='Change Role';
+          roleBtn.onclick = async () => {
+            const newRole = prompt('Enter role (member|moderator|teacher|admin):', u.role || 'member');
+            if (newRole) { await updateDoc(doc(db,'users',id), { role: newRole }); alert('Updated role'); }
+          };
+          row.querySelector('div:last-child').appendChild(roleBtn);
+          approvedUsersList.appendChild(row);
         }
-        // -------------------------
+      });
+    });
 
-        // ================= INIT =================
-        window.onload = () => {
-            applyLanguage();
-            checkSession();
-        };
-
-        // --- UTILITY FUNCTIONS ---
-        function getLocalStorageData(key) {
-            return JSON.parse(localStorage.getItem(key) || '[]');
+    // Reports for admins & general reports list
+    reportsUnsub = onSnapshot(collection(db, 'reports'), snap => {
+      reportsList.innerHTML = '';
+      reportsAdminList.innerHTML = '';
+      snap.forEach(d => {
+        const r = d.data(); const id = d.id;
+        const el = document.createElement('div');
+        el.className = 'list-item';
+        el.innerHTML = `<div><strong>Type: ${r.type}</strong><div class="small-muted">${r.message || ''}</div></div>`;
+        const right = document.createElement('div');
+        if (currentUserDoc.role === 'admin') {
+          const resBtn = document.createElement('button'); resBtn.className='btn ghost'; resBtn.textContent='Resolve';
+          resBtn.onclick = async () => {
+            const note = prompt('Resolution note:','');
+            await updateDoc(doc(db,'reports',id), { status:'resolved', resolvedAt: serverTimestamp(), resolutionNote: note });
+            alert('Report resolved');
+          };
+          right.appendChild(resBtn);
+          el.appendChild(right);
+          reportsAdminList.appendChild(el);
+        } else {
+          reportsList.appendChild(el);
         }
+      });
+    });
 
-        function setLocalStorageData(key, data) {
-            localStorage.setItem(key, JSON.stringify(data));
-        }
+  }); // end onAuthStateChanged
 
-        // ================= LANGUAGE LOGIC =================
-        function toggleLanguage() {
-            const order = ['en', 'fr', 'ar'];
-            let idx = order.indexOf(currentLang);
-            currentLang = order[(idx + 1) % 3];
-            applyLanguage();
-        }
+  // ---------- Conversations / Chat ----------
+  // helper: open by selector
+  btnOpenChat.addEventListener('click', () => {
+    const id = convSelectorMain.value || convList.value;
+    if (!id) return alert('Select a conversation first');
+    openConversationById(id);
+    showSection('conversations');
+  });
 
-        function applyLanguage() {
-            document.body.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
-            
-            document.querySelectorAll('[data-t]').forEach(el => {
-                const key = el.getAttribute('data-t');
-                if(dictionary[currentLang][key]) {
-                    el.innerText = dictionary[currentLang][key];
-                }
-            });
-        }
+  async function openConversationById(convId){
+    currentConvId = convId;
+    // clear previous messages listener
+    if (convMessagesUnsub) convMessagesUnsub();
+    // load conv meta and messages
+    const convDocSnap = await getDoc(doc(db,'conversations',convId));
+    if (!convDocSnap.exists()) { alert('Conversation not found'); return; }
+    const convData = convDocSnap.data();
+    document.querySelector('#conversations .section-title h3').textContent = `Conversation: ${convData.name}`;
+    chatWindow.innerHTML = '';
+    // subscribe messages (no ordering by ts in this minimal example; add orderBy in production)
+    convMessagesUnsub = onSnapshot(collection(db,'conversations',convId,'messages'), snap => {
+      chatWindow.innerHTML = '';
+      snap.forEach(mdoc => {
+        const m = mdoc.data();
+        const div = document.createElement('div');
+        div.className = 'message';
+        const tsText = m.ts ? new Date(m.ts.toMillis()).toLocaleString() : '';
+        div.innerHTML = `<div class="meta">${m.authorName || 'Unknown'} • ${tsText}</div><div>${m.text}</div>`;
+        chatWindow.appendChild(div);
+      });
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    });
+  }
 
-        // ================= AUTH LOGIC (Local Storage) =================
-        function switchAuthMode(mode) {
-            document.querySelectorAll('.btn-outline').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
-            if(mode === 'login') {
-                document.getElementById('loginForm').classList.remove('hidden');
-                document.getElementById('registerForm').classList.add('hidden');
-            } else {
-                document.getElementById('loginForm').classList.add('hidden');
-                document.getElementById('registerForm').classList.remove('hidden');
-            }
-        }
+  // send message
+  sendBtn.addEventListener('click', async () => {
+    const text = (chatInput.value || '').trim();
+    if (!text) return;
+    if (!currentConvId) return alert('Open a conversation first');
+    if (!currentUser) return alert('Sign in first');
+    try {
+      await addDoc(collection(db,'conversations',currentConvId,'messages'), { text, authorId: currentUser.uid, authorName: currentUserDoc.name || currentUser.email, ts: serverTimestamp() });
+      chatInput.value = '';
+    } catch (err) { console.error(err); alert('Send failed: '+err.message) }
+  });
 
-        function checkSession() {
-            const userId = localStorage.getItem(LS_USER_KEY);
-            if(userId) {
-                currentUser = users.find(u => u.id === userId);
-                if (currentUser) {
-                    if (currentUser.status === 'pending') {
-                        showScreen('pendingScreen');
-                    } else if (currentUser.status === 'banned') {
-                        alert("Your account has been banned. Access denied.");
-                        doLogout();
-                    } else {
-                        initPortal();
-                    }
-                    return;
-                }
-            }
-            showScreen('authScreen');
-        }
+  // create conversation
+  createConvBtn.addEventListener('click', async () => {
+    const name = (newConvName.value||'').trim();
+    const type = newConvType.value;
+    if (!name) return alert('Enter a name');
+    try {
+      const docRef = await addDoc(collection(db,'conversations'), { name, type, owner: currentUser.uid, members: type === 'club' ? [currentUser.uid] : [], funds: type === 'club' ? 0 : null, createdAt: serverTimestamp() });
+      newConvName.value = '';
+      // open it after short delay (real-time snapshot will populate)
+      setTimeout(()=>{ openConversationById(docRef.id); showSection('conversations') }, 700);
+    } catch (err) { console.error(err); alert('Create failed: '+err.message) }
+  });
 
-        function doLogout() {
-            localStorage.removeItem(LS_USER_KEY);
-            location.reload();
-        }
+  // join/leave
+  joinLeaveBtn.addEventListener('click', async () => {
+    const convId = convList.value;
+    if (!convId) return alert('Select a conversation');
+    const convRef = doc(db,'conversations',convId);
+    const snap = await getDoc(convRef);
+    if (!snap.exists()) return;
+    const mems = snap.data().members || [];
+    if (mems.includes(currentUser.uid)) {
+      // leave
+      const newMems = mems.filter(m => m !== currentUser.uid);
+      await updateDoc(convRef, { members: newMems });
+      alert('Left group');
+    } else {
+      mems.push(currentUser.uid);
+      await updateDoc(convRef, { members: mems });
+      alert('Joined group');
+    }
+  });
 
-        document.getElementById('loginForm').onsubmit = (e) => {
-            e.preventDefault();
-            const email = document.getElementById('l_email').value;
-            const pass = document.getElementById('l_password').value;
+  // settings (simple): deposit / withdraw for clubs & report conv
+  openSettingsBtn.addEventListener('click', async () => {
+    const convId = convList.value;
+    if (!convId) return alert('Select a conversation');
+    const convSnap = await getDoc(doc(db,'conversations',convId));
+    if (!convSnap.exists()) return alert('Conversation missing');
+    const conv = convSnap.data();
+    let msg = `Name: ${conv.name}\nType: ${conv.type}\nMembers: ${(conv.members||[]).length}\nFunds: ${conv.funds||0}\n\nOptions:\n1) Report\n2) Deposit (club)\n3) Withdraw (club)\n4) Cancel`;
+    const choice = prompt(msg+'\n\nEnter option number:');
+    if (!choice) return;
+    if (choice === '1') {
+      const reason = prompt('Reason for report:');
+      if (!reason) return;
+      await addDoc(collection(db,'reports'), { type:'conversation', targetId: convId, reporterId: currentUser.uid, message: reason, status:'open', createdAt: serverTimestamp() });
+      alert('Reported');
+    } else if (choice === '2') {
+      if (conv.type !== 'club') return alert('Only clubs have funds');
+      const amt = Number(prompt('Deposit amount:'));
+      if (!amt || amt <= 0) return alert('Invalid');
+      await updateDoc(doc(db,'conversations',convId), { funds: increment(amt) });
+      alert('Deposited');
+    } else if (choice === '3') {
+      if (conv.type !== 'club') return alert('Only clubs have funds');
+      const amt = Number(prompt('Withdraw amount:'));
+      if (!amt || amt <= 0) return alert('Invalid');
+      // NOTE: naive withdrawal — production must use transactions or Cloud Function to check balance & permissions
+      await updateDoc(doc(db,'conversations',convId), { funds: increment(-amt) });
+      alert('Withdrawn (client-side: not secure in production)');
+    }
+  });
 
-            const user = users.find(u => u.email === email && u.password === pass);
+  // ---------- Create project & assignment quick actions ----------
+  btnNewProject.addEventListener('click', async () => {
+    const name = prompt('Project name:'); if (!name) return;
+    const desc = prompt('Description:') || '';
+    await addDoc(collection(db,'projects'), { name, desc, createdAt: serverTimestamp(), createdBy: currentUser ? currentUser.uid : null });
+    alert('Project created');
+  });
+  btnNewAssignment.addEventListener('click', async () => {
+    const title = prompt('Assignment title:'); if (!title) return;
+    const desc = prompt('Details:') || '';
+    await addDoc(collection(db,'assignments'), { title, desc, subject:'General', grade_target:'7AC', createdAt: serverTimestamp(), createdBy: currentUser ? currentUser.uid : null });
+    alert('Assignment posted');
+  });
 
-            if(user) {
-                localStorage.setItem(LS_USER_KEY, user.id);
-                checkSession(); // Recheck session to load portal
-            } else {
-                alert("Login Failed: Invalid email or password.");
-            }
-        };
+  // ---------- Reports ----------
+  createReportBtn.addEventListener('click', async () => {
+    const target = (reportTarget.value || '').trim();
+    const msg = (reportMsg.value || '').trim();
+    if (!target || !msg) return alert('Provide target and reason');
+    await addDoc(collection(db,'reports'), { type:'custom', targetId: target, reporterId: currentUser ? currentUser.uid : null, message: msg, status:'open', createdAt: serverTimestamp() });
+    reportTarget.value = ''; reportMsg.value = '';
+    alert('Reported');
+  });
 
-        document.getElementById('registerForm').onsubmit = (e) => {
-            e.preventDefault();
-            const email = document.getElementById('r_email').value;
-            const pass = document.getElementById('r_password').value;
-            const name = document.getElementById('r_name').value;
-            const grade = document.getElementById('r_grade').value;
-            const section = document.getElementById('r_section').value;
+  // ---------- Profile ----------
+  saveProfileBtn.addEventListener('click', async () => {
+    if (!currentUser) return alert('Sign in first');
+    const updates = { name: p_name.value.trim(), grade: p_grade.value, section: p_section.value };
+    await updateDoc(doc(db,'users',currentUser.uid), updates);
+    alert('Profile saved');
+  });
 
-            if (users.some(u => u.email === email)) {
-                alert("Registration Failed: Email already exists.");
-                return;
-            }
+  // ---------- Simple search (client-side) ----------
+  document.getElementById('globalSearch').addEventListener('keypress', async (e) => {
+    if (e.key !== 'Enter') return;
+    const q = e.target.value.trim();
+    if (!q) return;
+    alert('Searching for: ' + q + '\n(Implement server-side search for production)');
+  });
 
-            const newUser = {
-                id: Date.now().toString(), // Simple unique ID
-                email,
-                password: pass, // Stored in plain text
-                full_name: name,
-                grade,
-                section,
-                status: 'pending', // Waiting list is active
-                is_admin: false
-            };
+  // ---------- Utility: initial UI state ----------
+  showSection('dashboard');
+  openLogin.style.display = 'inline-block';
+  sidebarLogout.style.display = 'none';
 
-            users.push(newUser);
-            setLocalStorageData(LS_USERS_KEY, users);
-            alert("Registration successful! Please wait for admin approval (Ask the Admin to change your status).");
-            location.reload();
-        };
-
-        // ================= PORTAL LOGIC =================
-        function showScreen(id) {
-            document.getElementById('authScreen').classList.add('hidden');
-            document.getElementById('pendingScreen').classList.add('hidden');
-            document.getElementById('portalScreen').classList.add('hidden');
-            document.getElementById(id).classList.remove('hidden');
-        }
-
-        function initPortal() {
-            showScreen('portalScreen');
-            document.getElementById('welcomeUser').innerText = `Welcome, ${currentUser.full_name} (${currentUser.grade})`;
-            
-            // Fill Profile Form
-            document.getElementById('p_name').value = currentUser.full_name;
-            document.getElementById('p_grade').value = currentUser.grade;
-            document.getElementById('p_section').value = currentUser.section;
-
-            // Admin Checks
-            if(currentUser.is_admin) {
-                document.getElementById('adminBadge').classList.remove('hidden');
-                document.getElementById('btnCreateEvent').classList.remove('hidden');
-                document.getElementById('btnPostAssignment').classList.remove('hidden'); 
-                document.getElementById('adminNav').classList.remove('hidden'); // NEW: Show Admin Tab
-            } else {
-                document.getElementById('btnPostAssignment').classList.add('hidden');
-            }
-
-            loadProjects();
-        }
-
-        function showTab(tabName) {
-            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            
-            document.getElementById('tab-' + tabName).classList.remove('hidden');
-            
-            // Select the clicked nav item
-            const navItem = event && event.target ? event.target : document.querySelector(`.nav-item[onclick="showTab('${tabName}')"]`);
-            if (navItem) navItem.classList.add('active');
-
-            // Lazy Load Data
-            if(tabName === 'events') loadEvents();
-            if(tabName === 'assignments') loadAssignments();
-            if(tabName === 'chat') loadChat();
-            if(tabName === 'admin') loadAdminPanel(); // NEW: Load Admin Data
-        }
-
-        // --- FEATURES: PROJECTS --- (Code omitted for brevity, logic remains the same)
-        function createProject() {
-            const name = document.getElementById('proj_name').value;
-            const desc = document.getElementById('proj_desc').value;
-            const type = document.getElementById('proj_type').value;
-            const key = type === 'private' ? Math.random().toString(36).substring(7).toUpperCase() : null;
-            
-            const projects = getLocalStorageData(LS_PROJECTS_KEY);
-
-            projects.push({
-                id: Date.now(), name, description: desc, type, access_key: key, created_by: currentUser.full_name
-            });
-            
-            setLocalStorageData(LS_PROJECTS_KEY, projects);
-            document.getElementById('newProjectForm').classList.add('hidden');
-            loadProjects();
-        }
-
-        function loadProjects() {
-            const projects = getLocalStorageData(LS_PROJECTS_KEY).sort((a, b) => b.id - a.id);
-            const list = document.getElementById('projectsList');
-            list.innerHTML = '';
-
-            if (projects.length === 0) {
-                list.innerHTML = '<p style="text-align: center; color: #999;">No projects found. Create one above!</p>';
-            }
-
-            projects.forEach(p => {
-                list.innerHTML += `
-                    <div class="item-card">
-                        <div class="item-header">
-                            <b>${p.name}</b>
-                            <span class="badge ${p.type === 'public' ? 'badge-grade' : 'badge-admin'}">${p.type}</span>
-                        </div>
-                        <p>${p.description}</p>
-                        ${p.access_key ? `<small style="color:red">Access Key: ${p.access_key}</small>` : ''}
-                        <small style="color:#666">Created by: ${p.created_by}</small>
-                    </div>`;
-            });
-        }
-        // --- FEATURES: EVENTS --- (Code omitted for brevity, logic remains the same)
-        function createEvent() {
-            if(!currentUser.is_admin) return alert("Error: Admins Only");
-            
-            const events = getLocalStorageData(LS_EVENTS_KEY);
-
-            events.push({
-                id: Date.now(),
-                title: document.getElementById('evt_title').value,
-                start_date: document.getElementById('evt_start').value,
-                end_date: document.getElementById('evt_end').value,
-                created_by: currentUser.full_name
-            });
-
-            setLocalStorageData(LS_EVENTS_KEY, events);
-            document.getElementById('newEventForm').classList.add('hidden'); 
-            loadEvents();
-        }
-
-        function loadEvents() {
-            const events = getLocalStorageData(LS_EVENTS_KEY).sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
-            const list = document.getElementById('eventsList');
-            list.innerHTML = '';
-
-            if (events.length === 0) {
-                list.innerHTML = '<p style="text-align: center; color: #999;">No upcoming events.</p>';
-            }
-
-            events.forEach(e => {
-                list.innerHTML += `
-                    <div class="item-card" style="border-left-color: var(--warning);">
-                        <h3>${e.title}</h3>
-                        <small>📅 From: ${e.start_date} To: ${e.end_date}</small>
-                    </div>`;
-            });
-        }
-        // --- FEATURES: ASSIGNMENTS --- (Code omitted for brevity, logic remains the same)
-        function createAssignment() {
-            let desc = document.getElementById('hw_desc').value;
-            // Basic AI Moderation (Keyword Filter)
-            const badWords = ['bad', 'stupid', 'hate', 'kill', 'inappropriate']; 
-            if(badWords.some(w => desc.toLowerCase().includes(w))) {
-                alert("Your message contains inappropriate words and was blocked by moderation.");
-                return;
-            }
-
-            const assignments = getLocalStorageData(LS_ASSIGNMENTS_KEY);
-
-            assignments.push({
-                id: Date.now(),
-                title: document.getElementById('hw_title').value,
-                description: desc,
-                subject: document.getElementById('hw_subject').value,
-                grade_target: document.getElementById('hw_grade_target').value,
-                author_name: currentUser.full_name
-            });
-
-            setLocalStorageData(LS_ASSIGNMENTS_KEY, assignments);
-            document.getElementById('newHwForm').classList.add('hidden'); 
-            loadAssignments();
-        }
-
-        function loadAssignments() {
-            const assignments = getLocalStorageData(LS_ASSIGNMENTS_KEY)
-                .sort((a, b) => b.id - a.id)
-                .filter(a => a.grade_target === currentUser.grade); // Filter by user's grade
-                
-            const list = document.getElementById('assignmentsList');
-            list.innerHTML = '';
-            if(assignments.length === 0) {
-                list.innerHTML = '<p style="text-align: center; color: #999;">No assignments found for your grade.</p>';
-            }
-
-            assignments.forEach(a => {
-                list.innerHTML += `
-                    <div class="item-card">
-                        <div class="item-header">
-                            <b>${a.title}</b>
-                            <span class="badge badge-grade">${a.subject}</span>
-                        </div>
-                        <p>${a.description}</p>
-                        <small style="color:#666">Target: ${a.grade_target} | Posted By: ${a.author_name}</small>
-                    </div>`;
-            });
-        }
-        // --- FEATURES: CHAT --- (Code omitted for brevity, logic remains the same)
-        function sendChat() {
-            const txt = document.getElementById('chatMsg').value;
-            if(!txt) return;
-
-            // Basic Moderation
-            const badWords = ['bad', 'stupid', 'hate', 'inappropriate', 'swear']; 
-            if(badWords.some(w => txt.toLowerCase().includes(w))) { 
-                alert("Moderated: Inappropriate language detected."); 
-                return; 
-            }
-
-            const messages = getLocalStorageData(LS_MESSAGES_KEY);
-
-            messages.push({
-                id: Date.now(),
-                content: txt,
-                user_name: currentUser.full_name,
-                grade_tag: currentUser.grade,
-                created_at: new Date().toLocaleTimeString()
-            });
-
-            setLocalStorageData(LS_MESSAGES_KEY, messages);
-            document.getElementById('chatMsg').value = '';
-            loadChat();
-        }
-
-        function loadChat() {
-            const messages = getLocalStorageData(LS_MESSAGES_KEY)
-                .sort((a, b) => b.id - a.id) // Sort newest first
-                .slice(0, 20); // Limit to last 20 messages
-            
-            const box = document.getElementById('chatBox');
-            box.innerHTML = '';
-
-            messages.reverse().forEach(m => { // Reverse again for display (oldest at top, newest at bottom)
-                box.innerHTML += `
-                    <div class="msg">
-                        <div class="msg-meta">${m.user_name} [${m.grade_tag}] - ${m.created_at}</div>
-                        ${m.content}
-                    </div>`;
-            });
-            box.scrollTop = box.scrollHeight;
-        }
-
-        // --- FEATURES: PROFILE --- (Code omitted for brevity, logic remains the same)
-        function updateProfile() {
-            const userIndex = users.findIndex(u => u.id === currentUser.id);
-
-            if (userIndex !== -1) {
-                users[userIndex].full_name = document.getElementById('p_name').value;
-                users[userIndex].grade = document.getElementById('p_grade').value;
-                users[userIndex].section = document.getElementById('p_section').value;
-                
-                setLocalStorageData(LS_USERS_KEY, users);
-                currentUser = users[userIndex]; 
-
-                alert("Profile Updated Successfully!");
-                location.reload();
-            }
-        }
-        
-        // ================= ADMIN PANEL FEATURES (NEW) =================
-
-        function updateUsersArray(userId, updates) {
-            let users = getLocalStorageData(LS_USERS_KEY);
-            const userIndex = users.findIndex(u => u.id === userId);
-            
-            if (userIndex !== -1) {
-                // Apply updates (e.g., { status: 'approved' })
-                Object.assign(users[userIndex], updates);
-                setLocalStorageData(LS_USERS_KEY, users);
-                loadAdminPanel(); // Refresh view
-                
-                // If the current user's profile was updated, refresh the page to reflect the change (e.g., if they were banned)
-                if (userId === currentUser.id) {
-                    currentUser = users[userIndex];
-                    checkSession(); // Recheck status and refresh if needed
-                }
-            }
-        }
-
-        window.approveUser = (userId) => {
-            updateUsersArray(userId, { status: 'approved' });
-            alert("User Approved. They can now log in.");
-        }
-
-        window.banUser = (userId) => {
-            updateUsersArray(userId, { status: 'banned' });
-            alert("User Banned.");
-        }
-
-        window.toggleAdmin = (userId) => {
-            const users = getLocalStorageData(LS_USERS_KEY);
-            const user = users.find(u => u.id === userId);
-            
-            if (user.id === currentUser.id) {
-                alert("You cannot change your own admin status.");
-                return;
-            }
-            
-            updateUsersArray(userId, { is_admin: !user.is_admin });
-            alert(user.full_name + " admin status toggled.");
-        }
-
-        function loadAdminPanel() {
-            if (!currentUser.is_admin) return; // Critical security check
-
-            const allUsers = getLocalStorageData(LS_USERS_KEY);
-            
-            const pendingList = document.getElementById('pendingUsersList');
-            const approvedList = document.getElementById('approvedUsersList');
-            
-            pendingList.innerHTML = '';
-            approvedList.innerHTML = '';
-
-            const pendingUsers = allUsers.filter(u => u.status === 'pending');
-            // Filter out the current admin from the main list for safety
-            const manageableUsers = allUsers.filter(u => u.status !== 'pending' && u.id !== currentUser.id);
-
-            // --- Render Pending Users ---
-            if (pendingUsers.length === 0) {
-                pendingList.innerHTML = '<p style="color: var(--success); font-weight: 500;">✅ No new users waiting for approval.</p>';
-            } else {
-                pendingUsers.forEach(u => {
-                    pendingList.innerHTML += `
-                        <div class="item-card" style="border-left-color: var(--warning); display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <b>${u.full_name}</b> - ${u.grade}${u.section}<br>
-                                <small>${u.email}</small>
-                            </div>
-                            <div>
-                                <button class="btn btn-small" style="margin-right: 10px; background: var(--success);" onclick="approveUser('${u.id}')">Approve</button>
-                                <button class="btn btn-small btn-danger" onclick="banUser('${u.id}')">Ban</button>
-                            </div>
-                        </div>`;
-                });
-            }
-
-            // --- Render Approved/Banned Users ---
-            if (manageableUsers.length === 0) {
-                approvedList.innerHTML = '<p style="color: #999;">No other approved users to manage.</p>';
-            } else {
-                manageableUsers.forEach(u => {
-                    const adminStatus = u.is_admin ? '<span class="badge badge-admin">ADMIN</span>' : '';
-                    const statusColor = u.status === 'approved' ? 'var(--primary)' : 'var(--danger)';
-                    const statusText = u.status.toUpperCase();
-                    const toggleBtnText = u.is_admin ? 'Demote Admin' : 'Make Admin';
-                    const banOrUnbanBtn = u.status === 'banned' 
-                        ? `<button class="btn btn-small btn-success" style="margin-left: 10px;" onclick="approveUser('${u.id}')">Unban/Approve</button>`
-                        : `<button class="btn btn-small btn-danger" style="margin-left: 10px;" onclick="banUser('${u.id}')">Ban User</button>`;
-
-                    approvedList.innerHTML += `
-                        <div class="item-card" style="border-left-color: ${statusColor};">
-                            <div class="item-header">
-                                <div>
-                                    <b>${u.full_name}</b> ${adminStatus}
-                                </div>
-                                <span class="badge" style="background:${statusColor}; color:white;">${statusText}</span>
-                            </div>
-                            <p>Grade: ${u.grade}${u.section} | Email: ${u.email}</p>
-                            <div style="margin-top: 10px; text-align: right;">
-                                <button class="btn btn-small" style="background: #3b82f6;" onclick="toggleAdmin('${u.id}')">${toggleBtnText}</button>
-                                ${banOrUnbanBtn}
-                            </div>
-                        </div>`;
-                });
-            }
-        }
-    </script>
+  // ---------- End module ----------
+  </script>
 </body>
 </html>
