@@ -148,36 +148,6 @@
   border: 1px solid #eef2ff;
   font-family: inherit;
 }
-
-/* Project preview image */
-.project-preview {
-  width: 100%;
-  max-height: 200px;
-  object-fit: cover;
-  border-radius: 8px;
-  margin-bottom: 12px;
-}
-
-/* Group chat styles */
-.group-chat-container {
-  display: none;
-}
-.group-chat-container.active {
-  display: block;
-}
-
-/* Report styles */
-.report-card {
-  background: #f8fafc;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 12px;
-}
-.report-meta {
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 8px;
-}
 </style>
 </head>
 <body>
@@ -230,12 +200,7 @@
     <section id="conversations" class="card" style="display:none">
       <h3>Conversations</h3>
       <div class="chat-area">
-        <div>
-          <label>Select Conversation:</label>
-          <select id="convList">
-            <option value="general">General Chat</option>
-          </select>
-        </div>
+        <select id="convList"></select>
         <div class="chat-window" id="chatWindow"></div>
         <div class="chat-input">
           <input id="chatInput" placeholder="Type your message...">
@@ -250,31 +215,9 @@
         <button id="createGroupBtn" class="btn">Create Group</button>
       </div>
       <div id="clubsList"></div>
-      
-      <!-- Group Chat Section (hidden by default) -->
-      <div id="groupChatContainer" class="group-chat-container">
-        <div class="section-title">
-          <h4 id="groupChatTitle">Group Chat</h4>
-          <button id="closeGroupChat" class="btn ghost">Back to Groups</button>
-        </div>
-        <div class="chat-area">
-          <div class="chat-window" id="groupChatWindow"></div>
-          <div class="chat-input">
-            <input id="groupChatInput" placeholder="Type your message...">
-            <button class="btn" id="groupSendBtn">Send</button>
-          </div>
-        </div>
-      </div>
     </section>
     
-    <section id="reports" class="card" style="display:none">
-      <h3>Reports</h3>
-      <div class="section-title">
-        <p>Academic progress and activity reports</p>
-        <button id="generateReportBtn" class="btn">Generate Report</button>
-      </div>
-      <div id="reportsList"></div>
-    </section>
+    <section id="reports" class="card" style="display:none"><h3>Reports</h3><div id="reportsList"></div></section>
     
     <section id="profile" class="card" style="display:none">
       <h3>Profile</h3>
@@ -283,15 +226,6 @@
         <input type="file" id="profilePicInput" class="file-input" accept="image/*">
         <input type="text" id="profileName" placeholder="Your Name">
         <textarea id="profileBio" placeholder="Write something about yourself..."></textarea>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <select id="profileGrade">
-            <option value="">Select Grade</option>
-            <option value="7AC">7AC</option>
-            <option value="8AC">8AC</option>
-            <option value="9AC">9AC</option>
-          </select>
-          <input type="text" id="profileClass" placeholder="Class Name">
-        </div>
         <button id="saveProfileBtn" class="btn">Save Profile</button>
       </div>
     </section>
@@ -329,19 +263,6 @@
     <h3>Create New Project</h3>
     <input id="projectTitle" placeholder="Project Title" style="width:100%;padding:8px;margin:4px 0">
     <textarea id="projectDescription" placeholder="Project Description" style="width:100%;padding:8px;margin:4px 0; min-height:100px"></textarea>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-      <select id="projectGrade" style="width:100%;padding:8px;margin:4px 0">
-        <option value="">Select Grade</option>
-        <option value="7AC">7AC</option>
-        <option value="8AC">8AC</option>
-        <option value="9AC">9AC</option>
-      </select>
-      <input id="projectClass" placeholder="Class Name" style="width:100%;padding:8px;margin:4px 0">
-    </div>
-    <div>
-      <label>Project Preview Image:</label>
-      <input type="file" id="projectImage" accept="image/*" style="width:100%;padding:8px;margin:4px 0">
-    </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
       <button id="cancelProjectBtn" class="btn ghost">Cancel</button>
       <button id="saveProjectBtn" class="btn">Create Project</button>
@@ -399,10 +320,6 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
 
-// Global variables
-let currentGroupId = null;
-let currentGroupName = null;
-
 // --- UI Functions ---
 function showToast(message, type = 'success') {
   const toast = document.getElementById('toast');
@@ -434,11 +351,6 @@ navItems.forEach(item => {
     document.getElementById(tab).style.display = "block";
     navItems.forEach(i => i.classList.remove("active"));
     item.classList.add("active");
-    
-    // Reset group chat view when leaving clubs tab
-    if (tab !== 'clubs') {
-      resetGroupChatView();
-    }
   });
 });
 
@@ -467,11 +379,8 @@ cancelProjectBtn.addEventListener("click", () => {
 saveProjectBtn.addEventListener("click", () => {
   const title = document.getElementById("projectTitle").value;
   const description = document.getElementById("projectDescription").value;
-  const grade = document.getElementById("projectGrade").value;
-  const className = document.getElementById("projectClass").value;
-  const imageFile = document.getElementById("projectImage").files[0];
   
-  if (!title || !description || !grade || !className) {
+  if (!title || !description) {
     showToast('Please fill in all fields', 'error');
     return;
   }
@@ -485,49 +394,26 @@ saveProjectBtn.addEventListener("click", () => {
   saveProjectBtn.setAttribute('data-original-text', saveProjectBtn.textContent);
   setLoading(saveProjectBtn, true);
   
-  let uploadPromise = Promise.resolve(null);
-  
-  // Upload project image if selected
-  if (imageFile) {
-    const storageRef = storage.ref();
-    const projectImageRef = storageRef.child(`projectImages/${user.uid}/${Date.now()}_${imageFile.name}`);
-    uploadPromise = projectImageRef.put(imageFile).then(snapshot => snapshot.ref.getDownloadURL());
-  }
-  
-  uploadPromise
-    .then(imageURL => {
-      const projectData = {
-        title: title,
-        description: description,
-        grade: grade,
-        class: className,
-        createdBy: user.uid,
-        creatorEmail: user.email,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        status: "active"
-      };
-      
-      if (imageURL) {
-        projectData.imageURL = imageURL;
-      }
-      
-      return db.collection("projects").add(projectData);
-    })
-    .then(() => {
-      showToast("Project created successfully!");
-      createProjectModal.style.display = "none";
-      document.getElementById("projectTitle").value = "";
-      document.getElementById("projectDescription").value = "";
-      document.getElementById("projectGrade").value = "";
-      document.getElementById("projectClass").value = "";
-      document.getElementById("projectImage").value = "";
-    })
-    .catch(err => {
-      showToast(err.message, 'error');
-    })
-    .finally(() => {
-      setLoading(saveProjectBtn, false);
-    });
+  db.collection("projects").add({
+    title: title,
+    description: description,
+    createdBy: user.uid,
+    creatorEmail: user.email,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    status: "active"
+  })
+  .then(() => {
+    showToast("Project created successfully!");
+    createProjectModal.style.display = "none";
+    document.getElementById("projectTitle").value = "";
+    document.getElementById("projectDescription").value = "";
+  })
+  .catch(err => {
+    showToast(err.message, 'error');
+  })
+  .finally(() => {
+    setLoading(saveProjectBtn, false);
+  });
 });
 
 // --- Group Creation Modal ---
@@ -592,7 +478,6 @@ saveGroupBtn.addEventListener("click", () => {
 const sendBtn = document.getElementById("sendBtn");
 const chatInput = document.getElementById("chatInput");
 const chatWindow = document.getElementById("chatWindow");
-const convList = document.getElementById("convList");
 
 sendBtn.addEventListener("click", sendMessage);
 chatInput.addEventListener("keypress", (e) => {
@@ -609,13 +494,10 @@ function sendMessage() {
     return;
   }
   
-  const conversation = convList.value;
-  
   db.collection("messages").add({
     text: message,
     sender: user.uid,
     senderEmail: user.email,
-    conversation: conversation,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   })
   .then(() => {
@@ -627,157 +509,31 @@ function sendMessage() {
 }
 
 // Load messages in real-time
-function loadMessages(conversation = "general") {
-  chatWindow.innerHTML = "";
-  
-  db.collection("messages")
-    .where("conversation", "==", conversation)
-    .orderBy("timestamp", "asc")
-    .onSnapshot(snapshot => {
-      chatWindow.innerHTML = "";
+db.collection("messages")
+  .orderBy("timestamp", "asc")
+  .onSnapshot(snapshot => {
+    chatWindow.innerHTML = "";
+    
+    snapshot.forEach(doc => {
+      const message = doc.data();
+      const messageDiv = document.createElement("div");
+      messageDiv.className = "message";
       
-      snapshot.forEach(doc => {
-        const message = doc.data();
-        const messageDiv = document.createElement("div");
-        messageDiv.className = "message";
-        
-        const metaDiv = document.createElement("div");
-        metaDiv.className = "meta";
-        metaDiv.textContent = `${message.senderEmail} - ${message.timestamp ? new Date(message.timestamp.toDate()).toLocaleString() : 'Just now'}`;
-        
-        const textDiv = document.createElement("div");
-        textDiv.textContent = message.text;
-        
-        messageDiv.appendChild(metaDiv);
-        messageDiv.appendChild(textDiv);
-        chatWindow.appendChild(messageDiv);
-      });
+      const metaDiv = document.createElement("div");
+      metaDiv.className = "meta";
+      metaDiv.textContent = `${message.senderEmail} - ${message.timestamp ? new Date(message.timestamp.toDate()).toLocaleString() : 'Just now'}`;
       
-      // Scroll to bottom
-      chatWindow.scrollTop = chatWindow.scrollHeight;
+      const textDiv = document.createElement("div");
+      textDiv.textContent = message.text;
+      
+      messageDiv.appendChild(metaDiv);
+      messageDiv.appendChild(textDiv);
+      chatWindow.appendChild(messageDiv);
     });
-}
-
-// Load initial messages
-loadMessages();
-
-// Update messages when conversation changes
-convList.addEventListener("change", (e) => {
-  loadMessages(e.target.value);
-});
-
-// --- Group Chat System ---
-const groupSendBtn = document.getElementById("groupSendBtn");
-const groupChatInput = document.getElementById("groupChatInput");
-const groupChatWindow = document.getElementById("groupChatWindow");
-const groupChatContainer = document.getElementById("groupChatContainer");
-const groupChatTitle = document.getElementById("groupChatTitle");
-const closeGroupChat = document.getElementById("closeGroupChat");
-
-groupSendBtn.addEventListener("click", sendGroupMessage);
-groupChatInput.addEventListener("keypress", (e) => {
-  if (e.key === 'Enter') sendGroupMessage();
-});
-
-closeGroupChat.addEventListener("click", resetGroupChatView);
-
-function sendGroupMessage() {
-  const message = groupChatInput.value.trim();
-  if (!message) return;
-  
-  const user = auth.currentUser;
-  if (!user || !currentGroupId) {
-    showToast('Please log in and select a group', 'error');
-    return;
-  }
-  
-  // Check if user is a member of the group
-  db.collection("studyGroups").doc(currentGroupId).get()
-    .then(doc => {
-      if (doc.exists) {
-        const group = doc.data();
-        if (!group.members.includes(user.uid)) {
-          showToast('You are not a member of this group', 'error');
-          return;
-        }
-        
-        // Send message to group chat
-        return db.collection("groupMessages").add({
-          text: message,
-          sender: user.uid,
-          senderEmail: user.email,
-          groupId: currentGroupId,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      }
-    })
-    .then(() => {
-      groupChatInput.value = "";
-    })
-    .catch(err => {
-      showToast(err.message, 'error');
-    });
-}
-
-function loadGroupMessages(groupId) {
-  groupChatWindow.innerHTML = "";
-  
-  db.collection("groupMessages")
-    .where("groupId", "==", groupId)
-    .orderBy("timestamp", "asc")
-    .onSnapshot(snapshot => {
-      groupChatWindow.innerHTML = "";
-      
-      snapshot.forEach(doc => {
-        const message = doc.data();
-        const messageDiv = document.createElement("div");
-        messageDiv.className = "message";
-        
-        const metaDiv = document.createElement("div");
-        metaDiv.className = "meta";
-        metaDiv.textContent = `${message.senderEmail} - ${message.timestamp ? new Date(message.timestamp.toDate()).toLocaleString() : 'Just now'}`;
-        
-        const textDiv = document.createElement("div");
-        textDiv.textContent = message.text;
-        
-        messageDiv.appendChild(metaDiv);
-        messageDiv.appendChild(textDiv);
-        groupChatWindow.appendChild(messageDiv);
-      });
-      
-      // Scroll to bottom
-      groupChatWindow.scrollTop = groupChatWindow.scrollHeight;
-    });
-}
-
-function openGroupChat(groupId, groupName) {
-  currentGroupId = groupId;
-  currentGroupName = groupName;
-  
-  // Update UI
-  document.getElementById("clubsList").style.display = "none";
-  groupChatContainer.classList.add("active");
-  groupChatTitle.textContent = `${groupName} Chat`;
-  
-  // Load group messages
-  loadGroupMessages(groupId);
-  
-  // Add to conversation list if not already there
-  const convOption = document.querySelector(`#convList option[value="group_${groupId}"]`);
-  if (!convOption) {
-    const newOption = document.createElement("option");
-    newOption.value = `group_${groupId}`;
-    newOption.textContent = `${groupName} (Group)`;
-    convList.appendChild(newOption);
-  }
-}
-
-function resetGroupChatView() {
-  document.getElementById("clubsList").style.display = "block";
-  groupChatContainer.classList.remove("active");
-  currentGroupId = null;
-  currentGroupName = null;
-}
+    
+    // Scroll to bottom
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  });
 
 // --- Profile System ---
 const saveProfileBtn = document.getElementById("saveProfileBtn");
@@ -785,8 +541,6 @@ const profilePicInput = document.getElementById("profilePicInput");
 const profilePic = document.getElementById("profilePic");
 const profileName = document.getElementById("profileName");
 const profileBio = document.getElementById("profileBio");
-const profileGrade = document.getElementById("profileGrade");
-const profileClass = document.getElementById("profileClass");
 
 saveProfileBtn.addEventListener("click", saveProfile);
 profilePicInput.addEventListener("change", handleProfilePicUpload);
@@ -818,14 +572,7 @@ function saveProfile() {
   
   const name = profileName.value;
   const bio = profileBio.value;
-  const grade = profileGrade.value;
-  const className = profileClass.value;
   const file = profilePicInput.files[0];
-  
-  if (!name || !grade || !className) {
-    showToast('Please fill in name, grade, and class', 'error');
-    return;
-  }
   
   saveProfileBtn.setAttribute('data-original-text', saveProfileBtn.textContent);
   setLoading(saveProfileBtn, true);
@@ -844,8 +591,6 @@ function saveProfile() {
       const profileData = {
         name: name,
         bio: bio,
-        grade: grade,
-        class: className,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       
@@ -858,7 +603,6 @@ function saveProfile() {
     .then(() => {
       showToast("Profile saved successfully!");
       loadProfile();
-      updateSidebarProfile();
     })
     .catch(err => {
       showToast(err.message, 'error');
@@ -878,8 +622,6 @@ function loadProfile() {
         const data = doc.data();
         profileName.value = data.name || "";
         profileBio.value = data.bio || "";
-        profileGrade.value = data.grade || "";
-        profileClass.value = data.class || "";
         if (data.photoURL) {
           profilePic.src = data.photoURL;
         }
@@ -887,139 +629,6 @@ function loadProfile() {
     })
     .catch(err => {
       console.error("Error loading profile:", err);
-    });
-}
-
-function updateSidebarProfile() {
-  const user = auth.currentUser;
-  if (!user) return;
-  
-  db.collection("profiles").doc(user.uid).get()
-    .then(doc => {
-      if (doc.exists) {
-        const data = doc.data();
-        const sideName = document.getElementById("sideName");
-        const sideRole = document.getElementById("sideRole");
-        
-        sideName.textContent = data.name || user.email;
-        if (data.grade && data.class) {
-          sideRole.textContent = `${data.grade} - ${data.class}`;
-        }
-      }
-    });
-}
-
-// --- Reports System ---
-const generateReportBtn = document.getElementById("generateReportBtn");
-const reportsList = document.getElementById("reportsList");
-
-generateReportBtn.addEventListener("click", generateReport);
-
-function generateReport() {
-  const user = auth.currentUser;
-  if (!user) {
-    showToast('Please log in to generate reports', 'error');
-    return;
-  }
-  
-  generateReportBtn.setAttribute('data-original-text', generateReportBtn.textContent);
-  setLoading(generateReportBtn, true);
-  
-  // Get user profile data
-  db.collection("profiles").doc(user.uid).get()
-    .then(profileDoc => {
-      const profile = profileDoc.exists ? profileDoc.data() : {};
-      
-      // Get user's projects
-      return db.collection("projects")
-        .where("createdBy", "==", user.uid)
-        .get()
-        .then(projectsSnapshot => {
-          const projects = [];
-          projectsSnapshot.forEach(doc => {
-            projects.push(doc.data());
-          });
-          
-          // Get user's group memberships
-          return db.collection("studyGroups")
-            .where("members", "array-contains", user.uid)
-            .get()
-            .then(groupsSnapshot => {
-              const groups = [];
-              groupsSnapshot.forEach(doc => {
-                groups.push(doc.data());
-              });
-              
-              // Generate report
-              const report = {
-                profile: profile,
-                projects: projects,
-                groups: groups,
-                generatedAt: new Date().toISOString()
-              };
-              
-              // Save report to Firestore
-              return db.collection("reports").add({
-                userId: user.uid,
-                userEmail: user.email,
-                report: report,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              });
-            });
-        });
-    })
-    .then(() => {
-      showToast("Report generated successfully!");
-      loadReports();
-    })
-    .catch(err => {
-      showToast(err.message, 'error');
-    })
-    .finally(() => {
-      setLoading(generateReportBtn, false);
-    });
-}
-
-function loadReports() {
-  const user = auth.currentUser;
-  if (!user) return;
-  
-  reportsList.innerHTML = "";
-  
-  db.collection("reports")
-    .where("userId", "==", user.uid)
-    .orderBy("createdAt", "desc")
-    .get()
-    .then(snapshot => {
-      if (snapshot.empty) {
-        reportsList.innerHTML = "<div class='list-item'>No reports yet. Generate one to get started!</div>";
-        return;
-      }
-      
-      snapshot.forEach(doc => {
-        const reportData = doc.data();
-        const reportDiv = document.createElement("div");
-        reportDiv.className = "report-card";
-        
-        const reportDate = reportData.createdAt ? 
-          new Date(reportData.createdAt.toDate()).toLocaleDateString() : 
-          new Date().toLocaleDateString();
-          
-        reportDiv.innerHTML = `
-          <h4>Academic Progress Report</h4>
-          <p><strong>Generated:</strong> ${reportDate}</p>
-          <p><strong>Projects:</strong> ${reportData.report.projects.length}</p>
-          <p><strong>Study Groups:</strong> ${reportData.report.groups.length}</p>
-          <div class="report-meta">
-            Includes profile information, project details, and group memberships
-          </div>
-        `;
-        
-        reportsList.appendChild(reportDiv);
-      });
-    })
-    .catch(err => {
-      console.error("Error loading reports:", err);
     });
 }
 
@@ -1079,10 +688,7 @@ document.getElementById("modalLogin").addEventListener("click", () => {
 });
 
 document.getElementById("sidebarLogout").addEventListener("click", () => {
-  auth.signOut().then(() => {
-    showToast("Logged out successfully!");
-    resetGroupChatView();
-  });
+  auth.signOut().then(() => showToast("Logged out successfully!"));
 });
 
 // --- Auth state listener ---
@@ -1113,15 +719,8 @@ auth.onAuthStateChanged(user => {
       adminNav.style.display = "none";
     }
     
-    // Load user profile and update sidebar
+    // Load user profile
     loadProfile();
-    updateSidebarProfile();
-    
-    // Load user-specific data
-    loadReports();
-    
-    // Update conversation list with user's groups
-    updateConversationList();
   } else {
     sideName.textContent = "Guest";
     sideRole.textContent = "Not signed in";
@@ -1130,37 +729,8 @@ auth.onAuthStateChanged(user => {
     loginBtn.style.display = "block";
     logoutBtn.style.display = "none";
     adminNav.style.display = "none";
-    
-    // Reset group chat view
-    resetGroupChatView();
   }
 });
-
-// Update conversation list with user's groups
-function updateConversationList() {
-  const user = auth.currentUser;
-  if (!user) return;
-  
-  // Clear existing group options (keep general)
-  const convList = document.getElementById("convList");
-  const generalOption = convList.querySelector('option[value="general"]');
-  convList.innerHTML = "";
-  convList.appendChild(generalOption);
-  
-  // Get user's groups
-  db.collection("studyGroups")
-    .where("members", "array-contains", user.uid)
-    .get()
-    .then(snapshot => {
-      snapshot.forEach(doc => {
-        const group = doc.data();
-        const option = document.createElement("option");
-        option.value = `group_${doc.id}`;
-        option.textContent = `${group.name} (Group)`;
-        convList.appendChild(option);
-      });
-    });
-}
 
 // --- Firestore real-time updates ---
 const projectsList = document.getElementById("projectsList");
@@ -1176,20 +746,11 @@ db.collection("projects").orderBy("createdAt", "desc").onSnapshot(snapshot => {
     const data = doc.data();
     const div = document.createElement("div");
     div.className = "list-item";
-    
-    let imageHTML = "";
-    if (data.imageURL) {
-      imageHTML = `<img src="${data.imageURL}" class="project-preview" alt="Project Preview">`;
-    }
-    
     div.innerHTML = `
       <div>
-        ${imageHTML}
         <strong>${data.title}</strong>
         <div style="font-size: 14px; color: var(--muted);">${data.description}</div>
-        <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
-          Grade: ${data.grade} | Class: ${data.class} | Created by: ${data.creatorEmail}
-        </div>
+        <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Created by: ${data.creatorEmail}</div>
       </div>
       <div style="font-size: 12px; color: var(--muted);">${data.createdAt ? new Date(data.createdAt.toDate()).toLocaleDateString() : 'Recently'}</div>
     `;
@@ -1219,10 +780,7 @@ db.collection("studyGroups").orderBy("createdAt", "desc").onSnapshot(snapshot =>
           Subject: ${data.subject} • Members: ${data.memberCount || 1} • Created by: ${data.creatorEmail}
         </div>
       </div>
-      <div style="display: flex; gap: 8px;">
-        <button class="btn" style="font-size: 12px; padding: 6px 12px;" onclick="joinGroup('${doc.id}')">Join</button>
-        <button class="btn ghost" style="font-size: 12px; padding: 6px 12px;" onclick="openGroupChat('${doc.id}', '${data.name}')">Chat</button>
-      </div>
+      <button class="btn" style="font-size: 12px; padding: 6px 12px;" onclick="joinGroup('${doc.id}')">Join</button>
     `;
     clubsList.appendChild(div);
   });
@@ -1256,7 +814,6 @@ function joinGroup(groupId) {
       })
       .then(() => {
         showToast('Successfully joined the group!');
-        updateConversationList();
       })
       .catch(err => {
         showToast(err.message, 'error');
@@ -1266,7 +823,7 @@ function joinGroup(groupId) {
 }
 
 // --- Placeholder for other sections (assignments, events, etc.) ---
-const placeholders = ["assignmentsList","eventsList"];
+const placeholders = ["assignmentsList","eventsList","reportsList"];
 placeholders.forEach(id => {
   const container = document.getElementById(id);
   if(container) container.innerHTML = "<div class='list-item'>No data yet</div>";
