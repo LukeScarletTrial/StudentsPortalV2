@@ -46,6 +46,41 @@
 #authModal{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.45);align-items:center;justify-content:center;z-index:1000;}
 #authModal>div{background:var(--surface);padding:22px;border-radius:12px;max-width:520px;width:100%;box-shadow:var(--shadow);}
 @media(max-width:980px){.app{grid-template-columns:1fr;padding-bottom:160px}.sidebar{position:relative;height:auto}.search{min-width:unset;width:100%}.chat-window{height:200px}}
+
+/* Additional styles for improved UI */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  z-index: 1001;
+  transform: translateX(150%);
+  transition: transform 0.3s ease;
+}
+.toast.show {
+  transform: translateX(0);
+}
+.toast.success {
+  border-left: 4px solid #10b981;
+}
+.toast.error {
+  border-left: 4px solid var(--danger);
+}
+.loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255,255,255,.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 </style>
 </head>
 <body>
@@ -66,8 +101,8 @@
     </nav>
     <div class="profile-card"><div class="profile-name" id="sideName">Guest</div><div class="profile-role" id="sideRole">Not signed in</div></div>
     <div style="margin-top:12px;display:flex;gap:8px">
-      <button id="sidebarLogout" class="btn ghost" style="flex:1">Logout</button>
-      <button id="openLogin" class="btn" style="display:none;flex:1">Login</button>
+      <button id="sidebarLogout" class="btn ghost" style="flex:1; display:none">Logout</button>
+      <button id="openLogin" class="btn" style="flex:1">Login</button>
     </div>
   </aside>
 
@@ -79,7 +114,7 @@
     </div>
 
     <!-- Sections -->
-    <section id="dashboard" class="card"><h3>Dashboard</h3></section>
+    <section id="dashboard" class="card"><h3>Dashboard</h3><p>Welcome to your student dashboard. Select a section from the sidebar to get started.</p></section>
     <section id="projects" class="card" style="display:none"><h3>Projects</h3><div id="projectsList"></div></section>
     <section id="assignments" class="card" style="display:none"><h3>Assignments</h3><div id="assignmentsList"></div></section>
     <section id="events" class="card" style="display:none"><h3>Events</h3><div id="eventsList"></div></section>
@@ -101,12 +136,17 @@
     <button id="modalLogin" class="btn">Login</button>
   </div>
 </div></div>
-<script type="module">
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, collection, addDoc, onSnapshot } from "firebase/firestore";
 
+<!-- Toast notification -->
+<div id="toast" class="toast"></div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+
+<script>
 // --- Firebase config ---
 const firebaseConfig = {
   apiKey: "AIzaSyApBvfatNOG71P8SUB_uYT08zGeOmC8VlY",
@@ -119,10 +159,32 @@ const firebaseConfig = {
 };
 
 // --- Initialize Firebase ---
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const auth = getAuth(app);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const analytics = firebase.analytics();
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// --- UI Functions ---
+function showToast(message, type = 'success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = `toast ${type}`;
+  toast.classList.add('show');
+  
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+}
+
+function setLoading(button, isLoading) {
+  if (isLoading) {
+    button.disabled = true;
+    button.innerHTML = '<span class="loading"></span>';
+  } else {
+    button.disabled = false;
+    button.innerHTML = button.getAttribute('data-original-text');
+  }
+}
 
 // --- Sidebar navigation ---
 const navItems = document.querySelectorAll(".nav-item");
@@ -140,44 +202,90 @@ navItems.forEach(item => {
 const authModal = document.getElementById("authModal");
 const openLoginBtn = document.getElementById("openLogin");
 openLoginBtn.addEventListener("click", () => authModal.style.display = "flex");
-authModal.addEventListener("click", e => { if(e.target === authModal) authModal.style.display = "none"; });
+authModal.addEventListener("click", e => { 
+  if(e.target === authModal) authModal.style.display = "none"; 
+});
 
 // --- Auth buttons ---
 document.getElementById("modalRegister").addEventListener("click", () => {
   const email = document.getElementById("modalEmail").value;
   const pass = document.getElementById("modalPass").value;
-  createUserWithEmailAndPassword(auth, email, pass)
-    .then(u => { alert("Registered!"); authModal.style.display="none"; })
-    .catch(err => alert(err.message));
+  const button = document.getElementById("modalRegister");
+  
+  if (!email || !pass) {
+    showToast('Please enter both email and password', 'error');
+    return;
+  }
+  
+  // Store original text and set loading state
+  button.setAttribute('data-original-text', button.textContent);
+  setLoading(button, true);
+  
+  auth.createUserWithEmailAndPassword(email, pass)
+    .then(u => { 
+      showToast("Registered successfully!");
+      authModal.style.display="none"; 
+    })
+    .catch(err => {
+      showToast(err.message, 'error');
+    })
+    .finally(() => {
+      setLoading(button, false);
+    });
 });
 
 document.getElementById("modalLogin").addEventListener("click", () => {
   const email = document.getElementById("modalEmail").value;
   const pass = document.getElementById("modalPass").value;
-  signInWithEmailAndPassword(auth, email, pass)
-    .then(u => { alert("Logged in!"); authModal.style.display="none"; })
-    .catch(err => alert(err.message));
+  const button = document.getElementById("modalLogin");
+  
+  if (!email || !pass) {
+    showToast('Please enter both email and password', 'error');
+    return;
+  }
+  
+  // Store original text and set loading state
+  button.setAttribute('data-original-text', button.textContent);
+  setLoading(button, true);
+  
+  auth.signInWithEmailAndPassword(email, pass)
+    .then(u => { 
+      showToast("Logged in successfully!");
+      authModal.style.display="none"; 
+    })
+    .catch(err => {
+      showToast(err.message, 'error');
+    })
+    .finally(() => {
+      setLoading(button, false);
+    });
 });
 
 document.getElementById("sidebarLogout").addEventListener("click", () => {
-  signOut(auth).then(() => alert("Logged out!"));
+  auth.signOut().then(() => showToast("Logged out successfully!"));
 });
 
 // --- Auth state listener ---
-onAuthStateChanged(auth, user => {
+auth.onAuthStateChanged(user => {
   const sideName = document.getElementById("sideName");
   const sideRole = document.getElementById("sideRole");
+  const welcomeText = document.getElementById("welcomeText");
+  const welcomeSub = document.getElementById("welcomeSub");
   const loginBtn = document.getElementById("openLogin");
   const logoutBtn = document.getElementById("sidebarLogout");
 
   if(user){
     sideName.textContent = user.email;
     sideRole.textContent = "Student";
+    welcomeText.textContent = `Welcome, ${user.email}`;
+    welcomeSub.textContent = "Ready to learn!";
     loginBtn.style.display = "none";
     logoutBtn.style.display = "block";
   } else {
     sideName.textContent = "Guest";
     sideRole.textContent = "Not signed in";
+    welcomeText.textContent = "Welcome";
+    welcomeSub.textContent = "Please sign in";
     loginBtn.style.display = "block";
     logoutBtn.style.display = "none";
   }
@@ -185,8 +293,14 @@ onAuthStateChanged(auth, user => {
 
 // --- Firestore real-time updates ---
 const projectsList = document.getElementById("projectsList");
-onSnapshot(collection(db, "projects"), snapshot => {
+db.collection("projects").onSnapshot(snapshot => {
   projectsList.innerHTML = "";
+  
+  if (snapshot.empty) {
+    projectsList.innerHTML = "<div class='list-item'>No projects yet</div>";
+    return;
+  }
+  
   snapshot.forEach(doc => {
     const div = document.createElement("div");
     div.className = "list-item";
