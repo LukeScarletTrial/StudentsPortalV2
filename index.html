@@ -3,86 +3,52 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Student Portal — Classroom UI (Firebase)</title>
-
-<!-- Google Fonts: Poppins -->
+<title>Student Portal — Classroom UI</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-<!-- Material Symbols (icons) -->
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-
 <style>
-:root {
-  --bg:#f5f7fa;
-  --surface:#ffffff;
-  --muted:#6b7280;
-  --primary:#1a73e8;
-  --accent:#f59e0b;
-  --danger:#e04848;
-  --shadow:0 6px 18px rgba(19,24,31,0.06);
-  --radius:12px;
-  --maxWidth:1200px;
-  --gap:16px;
-  font-family:'Poppins',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;
-}
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;padding:0;background:linear-gradient(180deg,#eef4ff 0%,var(--bg) 100%);color:#0f172a;font-family:var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
-body{display:flex;justify-content:center;padding:24px}
-.app{width:100%;max-width:var(--maxWidth);display:grid;grid-template-columns:260px 1fr;gap:var(--gap);align-items:start}
-
-/* Sidebar */
-.sidebar{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;height:calc(100vh - 48px);overflow:auto;position:sticky;top:24px;}
+/* --- KEEP ALL UI STYLES INTACT --- */
+:root{--bg:#f5f7fa;--surface:#fff;--muted:#6b7280;--primary:#1a73e8;--accent:#f59e0b;--danger:#e04848;--shadow:0 6px 18px rgba(19,24,31,0.06);--radius:12px;--maxWidth:1200px;--gap:16px;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;}
+*{box-sizing:border-box} body{margin:0;padding:24px;background:var(--bg);font-family:var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;display:flex;justify-content:center;} 
+.app{display:grid;grid-template-columns:260px 1fr;gap:var(--gap);width:100%;max-width:var(--maxWidth);align-items:start;}
+.sidebar{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);position:sticky;top:24px;height:calc(100vh - 48px);overflow:auto;}
 .brand{display:flex;gap:12px;align-items:center;margin-bottom:14px}
-.logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--primary),#6b8af6);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:18px}
-.brand .title{font-weight:600;font-size:16px}
-.brand .sub{font-size:12px;color:var(--muted)}
-nav.sidebar-nav{margin-top:8px;display:flex;flex-direction:column;gap:8px}
-.nav-item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;cursor:pointer;color:#0f172a;font-weight:500;}
+.logo{width:44px;height:44px;background:linear-gradient(135deg,var(--primary),#6b8af6);border-radius:10px;color:white;font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;}
+.brand .title{font-weight:600;font-size:16px;}
+.brand .sub{font-size:12px;color:var(--muted);}
+.sidebar-nav{display:flex;flex-direction:column;gap:8px;margin-top:8px;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;font-weight:500;color:#0f172a;cursor:pointer;}
 .nav-item:hover{background:#f3f6ff}
-.nav-item.active{background:linear-gradient(90deg, rgba(26,115,232,0.08), rgba(26,115,232,0.04));border-left:4px solid var(--primary);padding-left:8px}
-.icon{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;font-size:20px;color:var(--primary)}
-.profile-card{margin-top:16px;padding:12px;border-radius:10px;background:linear-gradient(90deg,#f8fafc,#fff);border:1px solid #eef2ff}
-.profile-name{font-weight:600}
-.profile-role{font-size:12px;color:var(--muted)}
-.sidebar button{width:100%}
-
-/* Main content */
-.main{display:flex;flex-direction:column;gap:var(--gap)}
-.topbar{background:transparent;display:flex;justify-content:space-between;align-items:center;padding:8px 0}
-.top-left{display:flex;align-items:center;gap:12px}
-.search{display:flex;align-items:center;gap:8px;background:var(--surface);border-radius:12px;padding:8px 10px;box-shadow:var(--shadow);min-width:420px;max-width:640px}
-.search input{border:0;outline:0;background:transparent;font-size:14px;width:100%}
-.top-actions{display:flex;gap:10px;align-items:center}
-
-/* Cards & grid */
-.card{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.list-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;border:1px solid #f1f5f9;margin-bottom:8px;background:#fff}
-
-/* Chat area */
-.chat-area{display:flex;flex-direction:column;gap:12px}
-.convo-select{display:flex;gap:12px;align-items:center}
-.convo-select select{padding:8px;border-radius:8px;border:1px solid #eef2ff;background:#fbfdff;flex:1}
-.chat-window{height:420px;border-radius:10px;border:1px solid #eef2ff;padding:12px;overflow:auto;background:#f8fbff}
-.message{padding:10px;border-radius:8px;background:#eef6ff;margin-bottom:8px}
-.message .meta{font-size:12px;color:var(--muted);margin-bottom:6px}
-.chat-input{display:flex;gap:10px;align-items:center}
-.chat-input input{flex:1;padding:12px;border-radius:10px;border:1px solid #eef2ff;background:#ffffff}
-
-/* Buttons */
-.btn{padding:10px 12px;border-radius:10px;border:0;background:var(--primary);color:white;cursor:pointer;font-weight:600}
-.btn.ghost{background:transparent;border:1px solid #e6eefc;color:var(--primary)}
-.btn.danger{background:var(--danger)}
-
-/* Responsive */
-@media(max-width:980px){.app{grid-template-columns:1fr;padding-bottom:160px}.sidebar{position:relative;height:auto}.search{min-width:unset;width:100%}.grid{grid-template-columns:1fr}.chat-window{height:300px}}
-/* Modal */
-#authModal{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.45);align-items:center;justify-content:center;z-index:1000}
-#authModal > div{background:var(--surface);padding:22px;border-radius:12px;max-width:520px;width:100%;box-shadow:var(--shadow)}
+.nav-item.active{background:linear-gradient(90deg, rgba(26,115,232,0.08), rgba(26,115,232,0.04));border-left:4px solid var(--primary);padding-left:8px;}
+.icon{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;font-size:20px;color:var(--primary);}
+.profile-card{margin-top:16px;padding:12px;border-radius:10px;background:linear-gradient(90deg,#f8fafc,#fff);border:1px solid #eef2ff;}
+.profile-name{font-weight:600;}
+.profile-role{font-size:12px;color:var(--muted);}
+.sidebar button{width:100%;}
+.main{display:flex;flex-direction:column;gap:var(--gap);}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:8px 0;}
+.search{display:flex;align-items:center;gap:8px;background:var(--surface);border-radius:12px;padding:8px 10px;box-shadow:var(--shadow);min-width:420px;max-width:640px;}
+.search input{border:0;outline:0;background:transparent;width:100%;font-size:14px;}
+.top-actions{display:flex;gap:10px;align-items:center;}
+.card{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.list-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;border:1px solid #f1f5f9;margin-bottom:8px;background:#fff;}
+.chat-area{display:flex;flex-direction:column;gap:12px;}
+.chat-window{height:300px;border-radius:10px;border:1px solid #eef2ff;padding:12px;overflow:auto;background:#f8fbff;}
+.message{padding:10px;border-radius:8px;background:#eef6ff;margin-bottom:8px;}
+.message .meta{font-size:12px;color:var(--muted);margin-bottom:6px;}
+.chat-input{display:flex;gap:10px;align-items:center;}
+.chat-input input{flex:1;padding:12px;border-radius:10px;border:1px solid #eef2ff;background:#ffffff;}
+.btn{padding:10px 12px;border-radius:10px;border:0;background:var(--primary);color:white;cursor:pointer;font-weight:600;}
+.btn.ghost{background:transparent;border:1px solid #e6eefc;color:var(--primary);}
+.btn.danger{background:var(--danger);}
+#authModal{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.45);align-items:center;justify-content:center;z-index:1000;}
+#authModal>div{background:var(--surface);padding:22px;border-radius:12px;max-width:520px;width:100%;box-shadow:var(--shadow);}
+@media(max-width:980px){.app{grid-template-columns:1fr;padding-bottom:160px}.sidebar{position:relative;height:auto}.search{min-width:unset;width:100%}.chat-window{height:200px}}
 </style>
 </head>
 <body>
-
 <div class="app">
   <!-- Sidebar -->
   <aside class="sidebar">
@@ -90,18 +56,15 @@ nav.sidebar-nav{margin-top:8px;display:flex;flex-direction:column;gap:8px}
     <nav class="sidebar-nav">
       <div class="nav-item active" data-tab="dashboard"><span class="material-symbols-outlined icon">home</span>Dashboard</div>
       <div class="nav-item" data-tab="projects"><span class="material-symbols-outlined icon">work</span>Projects</div>
-      <div class="nav-item" data-tab="events"><span class="material-symbols-outlined icon">event</span>Events</div>
       <div class="nav-item" data-tab="assignments"><span class="material-symbols-outlined icon">assignment</span>Assignments</div>
+      <div class="nav-item" data-tab="events"><span class="material-symbols-outlined icon">event</span>Events</div>
       <div class="nav-item" data-tab="conversations"><span class="material-symbols-outlined icon">chat_bubble</span>Conversations</div>
       <div class="nav-item" data-tab="clubs"><span class="material-symbols-outlined icon">account_balance</span>Clubs</div>
       <div class="nav-item" data-tab="reports"><span class="material-symbols-outlined icon">report</span>Reports</div>
       <div class="nav-item" data-tab="profile"><span class="material-symbols-outlined icon">person</span>Profile</div>
       <div id="adminNav" class="nav-item" data-tab="admin" style="display:none"><span class="material-symbols-outlined icon">admin_panel_settings</span>Admin Panel</div>
     </nav>
-    <div class="profile-card">
-      <div class="profile-name" id="sideName">Guest</div>
-      <div class="profile-role" id="sideRole">Not signed in</div>
-    </div>
+    <div class="profile-card"><div class="profile-name" id="sideName">Guest</div><div class="profile-role" id="sideRole">Not signed in</div></div>
     <div style="margin-top:12px;display:flex;gap:8px">
       <button id="sidebarLogout" class="btn ghost" style="flex:1">Logout</button>
       <button id="openLogin" class="btn" style="display:none;flex:1">Login</button>
@@ -111,144 +74,132 @@ nav.sidebar-nav{margin-top:8px;display:flex;flex-direction:column;gap:8px}
   <!-- Main content -->
   <main class="main">
     <div class="topbar">
-      <div class="top-left">
-        <div class="search"><span class="material-symbols-outlined" style="color:var(--muted)">search</span><input id="globalSearch" placeholder="Search projects, groups, assignments..."></div>
-      </div>
+      <div class="search"><span class="material-symbols-outlined" style="color:var(--muted)">search</span><input id="globalSearch" placeholder="Search projects, groups, assignments..."></div>
       <div class="top-actions"><div style="text-align:right"><div id="welcomeText" style="font-weight:600">Welcome</div><div class="small-muted" id="welcomeSub">Please sign in</div></div></div>
     </div>
 
     <!-- Sections -->
-    <section id="dashboard" class="card">
-      <div class="section-title"><div><h3 style="margin:0">Dashboard</h3><div class="small-muted">Overview</div></div>
-        <div style="display:flex;gap:8px"><button class="btn ghost" id="btnNewProject">New Project</button><button class="btn ghost" id="btnNewAssignment">New Assignment</button></div>
-      </div>
-      <div class="grid">
-        <div class="card"><h4 style="margin-top:0">Projects</h4><div id="projectsList"></div></div>
-        <div class="card"><h4 style="margin-top:0">Events</h4><div id="eventsList"></div></div>
-        <div class="card"><h4 style="margin-top:0">Assignments</h4><div id="assignmentsList"></div></div>
-        <div class="card"><h4 style="margin-top:0">Conversations</h4><div style="margin-top:8px;display:flex;gap:8px;align-items:center"><select id="conversationSelector" style="flex:1;padding:10px;border-radius:8px;border:1px solid #eef2ff"></select><button class="btn" id="btnOpenChat">Open</button></div></div>
-      </div>
-    </section>
-
-    <!-- Conversations -->
-    <section id="conversations" class="card" style="display:none">
-      <div class="section-title"><div><h3 style="margin:0">Conversations</h3><div class="small-muted">Global chat, groups, clubs</div></div>
-        <div style="display:flex;gap:8px"><input id="newConvName" placeholder="New group/club" style="padding:8px;border-radius:8px;border:1px solid #eef2ff"><select id="newConvType" style="padding:8px;border-radius:8px;border:1px solid #eef2ff"><option value="group">Study Group</option><option value="club">Club (private)</option></select><button class="btn" id="createConvBtn">Create</button></div>
-      </div>
-      <div class="chat-area">
-        <div class="convo-select"><select id="convList"></select><div style="display:flex;gap:8px"><button class="btn ghost" id="joinLeaveBtn">Join</button><button class="btn ghost" id="openSettingsBtn">Settings</button></div></div>
-        <div class="chat-window" id="chatWindow"></div>
-        <div class="chat-input"><input id="chatInput" placeholder="Write a message..."><button class="btn" id="sendBtn">Send</button></div>
-      </div>
-    </section>
-
-    <!-- Clubs -->
-    <section id="clubs" class="card" style="display:none">
-      <div class="section-title"><div><h3 style="margin:0">Clubs</h3><div class="small-muted">Private chats & funds</div></div></div>
-      <div id="clubsList"></div>
-    </section>
-
-    <!-- Reports -->
-    <section id="reports" class="card" style="display:none">
-      <div class="section-title"><div><h3 style="margin:0">Reports</h3><div class="small-muted">Create and review reports</div></div></div>
-      <div style="display:flex;gap:12px;margin-bottom:12px"><input id="reportTarget" placeholder="Target ID" style="padding:8px;border-radius:8px;border:1px solid #eef2ff"><input id="reportMsg" placeholder="Report reason" style="padding:8px;border-radius:8px;border:1px solid #eef2ff"><button class="btn" id="createReportBtn">Report</button></div>
-      <div id="reportsList"></div>
-      <div id="reportsAdminList"></div>
-    </section>
-
-    <!-- Profile -->
-    <section id="profile" class="card" style="display:none">
-      <div class="section-title"><div><h3 style="margin:0">Profile</h3><div class="small-muted">Edit your profile</div></div></div>
-      <div style="max-width:560px">
-        <label>Full name</label><input id="p_name" style="padding:10px;border-radius:8px;border:1px solid #eef2ff">
-        <label style="margin-top:8px">Grade</label><select id="p_grade" style="padding:10px;border-radius:8px;border:1px solid #eef2ff"><option>7AC</option><option>8AC</option><option>9AC</option></select>
-        <label style="margin-top:8px">Section</label><input id="p_section" style="padding:10px;border-radius:8px;border:1px solid #eef2ff">
-        <label style="margin-top:8px">Role</label><input id="p_role" readonly style="padding:10px;border-radius:8px;border:1px solid #eef2ff;background:#fbfbfb">
-        <div style="margin-top:12px"><button class="btn" id="saveProfileBtn">Save Changes</button></div>
-      </div>
-    </section>
-
-    <!-- Admin -->
-    <section id="admin" class="card" style="display:none">
-      <div class="section-title"><div><h3 style="margin:0">Admin Panel</h3><div class="small-muted">Approve users, manage roles, resolve reports</div></div></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div><h4>Pending Approvals</h4><div id="pendingUsersList"></div></div>
-        <div><h4>Users</h4><div id="approvedUsersList"></div></div>
-      </div>
-      <div style="margin-top:12px"><h4>Reports</h4><div id="reportsAdminList"></div></div>
-    </section>
+    <section id="dashboard" class="card"><h3>Dashboard</h3></section>
+    <section id="projects" class="card" style="display:none"><h3>Projects</h3><div id="projectsList"></div></section>
+    <section id="assignments" class="card" style="display:none"><h3>Assignments</h3><div id="assignmentsList"></div></section>
+    <section id="events" class="card" style="display:none"><h3>Events</h3><div id="eventsList"></div></section>
+    <section id="conversations" class="card" style="display:none"><h3>Conversations</h3><div class="chat-area"><select id="convList"></select><div class="chat-window" id="chatWindow"></div><div class="chat-input"><input id="chatInput"><button class="btn" id="sendBtn">Send</button></div></div></section>
+    <section id="clubs" class="card" style="display:none"><h3>Clubs</h3><div id="clubsList"></div></section>
+    <section id="reports" class="card" style="display:none"><h3>Reports</h3><div id="reportsList"></div></section>
+    <section id="profile" class="card" style="display:none"><h3>Profile</h3></section>
+    <section id="admin" class="card" style="display:none"><h3>Admin</h3></section>
   </main>
 </div>
 
-<!-- Auth modal -->
+<!-- Auth Modal -->
 <div id="authModal"><div>
   <h3>Sign in / Register</h3>
-  <div class="small-muted" style="margin-bottom:12px">Email & Password</div>
-  <div style="display:flex;gap:12px;margin-bottom:8px"><input id="modalEmail" placeholder="Email" style="flex:1;padding:10px;border-radius:8px;border:1px solid #eef2ff"><input id="modalPass" type="password" placeholder="Password" style="flex:1;padding:10px;border-radius:8px;border:1px solid #eef2ff"></div>
-  <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" id="modalRegister">Register</button><button class="btn" id="modalLogin">Login</button></div>
-  <div style="margin-top:10px" class="small-muted">Admins must approve new accounts.</div>
+  <input id="modalEmail" placeholder="Email" style="width:100%;padding:8px;margin:4px 0">
+  <input id="modalPass" type="password" placeholder="Password" style="width:100%;padding:8px;margin:4px 0">
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+    <button id="modalRegister" class="btn ghost">Register</button>
+    <button id="modalLogin" class="btn">Login</button>
+  </div>
 </div></div>
-
-<!-- Firebase + App script -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.17.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.17.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, addDoc, collection, onSnapshot, updateDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.17.0/firebase-firestore.js";
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
+import { getFirestore, collection, addDoc, onSnapshot } from "firebase/firestore";
 
+// --- Firebase config ---
 const firebaseConfig = {
-apiKey:"YOUR_API_KEY",authDomain:"YOUR_PROJECT.firebaseapp.com",projectId:"YOUR_PROJECT",storageBucket:"YOUR_PROJECT.appspot.com",messagingSenderId:"XXX",appId:"XXX"
+  apiKey: "AIzaSyApBvfatNOG71P8SUB_uYT08zGeOmC8VlY",
+  authDomain: "student-portal-61ead.firebaseapp.com",
+  projectId: "student-portal-61ead",
+  storageBucket: "student-portal-61ead.firebasestorage.app",
+  messagingSenderId: "415484265376",
+  appId: "1:415484265376:web:41d53b79ac5059a0a35ac5",
+  measurementId: "G-JHCC3HQ20M"
 };
-const app = initializeApp(firebaseConfig), auth = getAuth(app), db = getFirestore(app);
 
-const navItems = document.querySelectorAll('.nav-item');
-const sections = {dashboard:'dashboard',conversations:'conversations',clubs:'clubs',reports:'reports',profile:'profile',admin:'admin'};
-const conversationSelector=document.getElementById('conversationSelector'),convList=document.getElementById('convList'),chatWindow=document.getElementById('chatWindow'),chatInput=document.getElementById('chatInput');
-const btnOpenChat=document.getElementById('btnOpenChat'),sendBtn=document.getElementById('sendBtn'),createConvBtn=document.getElementById('createConvBtn'),joinLeaveBtn=document.getElementById('joinLeaveBtn');
+// --- Initialize Firebase ---
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-navItems.forEach(item=>item.addEventListener('click',()=>{navItems.forEach(i=>i.classList.remove('active'));item.classList.add('active');for(const sec in sections){document.getElementById(sections[sec]).style.display=sections[sec]===item.dataset.tab?'block':'none'}}));
-
-let currentConvId=null;
-
-createConvBtn.addEventListener('click',async()=>{
-  const name=document.getElementById('newConvName').value.trim(),type=document.getElementById('newConvType').value;
-  if(!name)return alert('Enter a name');
-  const docRef=await addDoc(collection(db,'conversations'),{name,type,createdAt:serverTimestamp(),members:[]});
-  document.getElementById('newConvName').value='';
+// --- Sidebar navigation ---
+const navItems = document.querySelectorAll(".nav-item");
+navItems.forEach(item => {
+  item.addEventListener("click", () => {
+    document.querySelectorAll("section").forEach(sec => sec.style.display = "none");
+    const tab = item.dataset.tab;
+    document.getElementById(tab).style.display = "block";
+    navItems.forEach(i => i.classList.remove("active"));
+    item.classList.add("active");
+  });
 });
 
-btnOpenChat.addEventListener('click',()=>{
-  currentConvId=conversationSelector.value;
-  if(!currentConvId)return alert('Select a conversation');document.getElementById('conversations').style.display='block';for(const sec in sections){if(sec!=='conversations')document.getElementById(sections[sec]).style.display='none'}
+// --- Modal toggle ---
+const authModal = document.getElementById("authModal");
+const openLoginBtn = document.getElementById("openLogin");
+openLoginBtn.addEventListener("click", () => authModal.style.display = "flex");
+authModal.addEventListener("click", e => { if(e.target === authModal) authModal.style.display = "none"; });
+
+// --- Auth buttons ---
+document.getElementById("modalRegister").addEventListener("click", () => {
+  const email = document.getElementById("modalEmail").value;
+  const pass = document.getElementById("modalPass").value;
+  createUserWithEmailAndPassword(auth, email, pass)
+    .then(u => { alert("Registered!"); authModal.style.display="none"; })
+    .catch(err => alert(err.message));
 });
 
-sendBtn.addEventListener('click',async()=>{
-  if(!chatInput.value.trim()||!currentConvId)return;
-  await addDoc(collection(db,'conversations',currentConvId,'messages'),{text:chatInput.value,createdAt:serverTimestamp(),uid:auth.currentUser.uid,name:auth.currentUser.displayName});
-  chatInput.value='';
+document.getElementById("modalLogin").addEventListener("click", () => {
+  const email = document.getElementById("modalEmail").value;
+  const pass = document.getElementById("modalPass").value;
+  signInWithEmailAndPassword(auth, email, pass)
+    .then(u => { alert("Logged in!"); authModal.style.display="none"; })
+    .catch(err => alert(err.message));
 });
 
-joinLeaveBtn.addEventListener('click',async()=>{
-  if(!currentConvId||!auth.currentUser)return;
-  const convRef=doc(db,'conversations',currentConvId);
-  const convSnap=await getDoc(convRef);
-  let members=convSnap.data().members||[];
-  if(members.includes(auth.currentUser.uid)){members=members.filter(u=>u!==auth.currentUser.uid)}else{members.push(auth.currentUser.uid)}
-  await updateDoc(convRef,{members});
+document.getElementById("sidebarLogout").addEventListener("click", () => {
+  signOut(auth).then(() => alert("Logged out!"));
 });
 
-onAuthStateChanged(auth,user=>{
-  if(user){document.getElementById('welcomeText').innerText='Welcome, '+user.displayName;document.getElementById('openLogin').style.display='none';document.getElementById('sidebarLogout').style.display='block';}else{document.getElementById('welcomeText').innerText='Welcome';document.getElementById('openLogin').style.display='block';document.getElementById('sidebarLogout').style.display='none';}});
+// --- Auth state listener ---
+onAuthStateChanged(auth, user => {
+  const sideName = document.getElementById("sideName");
+  const sideRole = document.getElementById("sideRole");
+  const loginBtn = document.getElementById("openLogin");
+  const logoutBtn = document.getElementById("sidebarLogout");
 
-document.getElementById('modalLogin').addEventListener('click',()=>{const email=document.getElementById('modalEmail').value,password=document.getElementById('modalPass').value;signInWithEmailAndPassword(auth,email,password).then(()=>document.getElementById('authModal').style.display='none').catch(e=>alert(e.message))});
-document.getElementById('modalRegister').addEventListener('click',()=>{const email=document.getElementById('modalEmail').value,password=document.getElementById('modalPass').value;createUserWithEmailAndPassword(auth,email,password).then(()=>alert('Registered, wait admin approval')).catch(e=>alert(e.message))});
-document.getElementById('sidebarLogout').addEventListener('click',()=>signOut(auth));
+  if(user){
+    sideName.textContent = user.email;
+    sideRole.textContent = "Student";
+    loginBtn.style.display = "none";
+    logoutBtn.style.display = "block";
+  } else {
+    sideName.textContent = "Guest";
+    sideRole.textContent = "Not signed in";
+    loginBtn.style.display = "block";
+    logoutBtn.style.display = "none";
+  }
+});
 
-onSnapshot(collection(db,'conversations'),snap=>{conversationSelector.innerHTML='';convList.innerHTML='';snap.forEach(doc=>{const o=document.createElement('option');o.value=doc.id;o.textContent=doc.data().name;conversationSelector.appendChild(o);const p=document.createElement('option');p.value=doc.id;p.textContent=doc.data().name;convList.appendChild(p);})});
+// --- Firestore real-time updates ---
+const projectsList = document.getElementById("projectsList");
+onSnapshot(collection(db, "projects"), snapshot => {
+  projectsList.innerHTML = "";
+  snapshot.forEach(doc => {
+    const div = document.createElement("div");
+    div.className = "list-item";
+    div.textContent = doc.data().name || "Unnamed project";
+    projectsList.appendChild(div);
+  });
+});
 
-let unsubMessages=null;
-convList.addEventListener('change',()=>{
-  if(unsubMessages)unsubMessages();chatWindow.innerHTML='';currentConvId=convList.value;
-  unsubMessages=onSnapshot(collection(db,'conversations',currentConvId,'messages'),snap=>{chatWindow.innerHTML='';snap.forEach(m=>{const div=document.createElement('div');div.className='message';div.innerHTML='<div class="meta">'+m.data().name+'</div><div>'+m.data().text+'</div>';chatWindow.appendChild(div);chatWindow.scrollTop=chatWindow.scrollHeight;})});
+// --- Placeholder for other sections (assignments, events, etc.) ---
+const placeholders = ["assignmentsList","eventsList","clubsList","reportsList"];
+placeholders.forEach(id => {
+  const container = document.getElementById(id);
+  if(container) container.innerHTML = "<div class='list-item'>No data yet</div>";
 });
 </script>
 </body>
