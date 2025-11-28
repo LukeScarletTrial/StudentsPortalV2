@@ -351,7 +351,7 @@
         };
 
         // ================= STATE =================
-        let supabase;
+        let supabaseClient;
         let currentUser = null;
         let userProfile = null;
         let currentLang = navigator.language.startsWith('ar') ? 'ar' : (navigator.language.startsWith('fr') ? 'fr' : 'en');
@@ -362,7 +362,7 @@
                 alert("Please configure Supabase Keys in the code!");
                 return;
             }
-            supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             applyLanguage();
             checkSession();
         };
