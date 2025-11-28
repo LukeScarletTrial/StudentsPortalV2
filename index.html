@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Portal 7AC-9AC</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Student Portal 7AC-9AC (Local Storage)</title>
     
     <style>
         /* ========== CSS STYLES ========== */
@@ -55,6 +54,7 @@
             background: white; padding: 10px; border-radius: 50%;
             cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             border: none; font-size: 20px;
+            z-index: 100;
         }
 
         input, select, textarea {
@@ -104,7 +104,7 @@
             border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px;
             margin-bottom: 15px; border-left: 4px solid var(--primary);
         }
-        .item-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
         .badge {
             padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;
         }
@@ -187,6 +187,7 @@
             <div class="nav-item" onclick="showTab('chat')" data-t="tabChat">Conversations</div>
             <div class="nav-item" onclick="showTab('profile')" data-t="tabProfile">Profile</div>
             <div class="nav-item" onclick="showTab('authors')" data-t="tabAuthors">Authors</div>
+            <div class="nav-item hidden" id="adminNav" onclick="showTab('admin')" data-t="tabAdmin">Admin Panel</div>
         </nav>
 
         <div class="content-card">
@@ -229,7 +230,7 @@
             <div id="tab-assignments" class="hidden">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
                     <h3 data-t="tabHomework">Assignments</h3>
-                    <button class="btn btn-small" onclick="document.getElementById('newHwForm').classList.toggle('hidden')">Post Assignment</button>
+                    <button id="btnPostAssignment" class="btn btn-small hidden" onclick="document.getElementById('newHwForm').classList.toggle('hidden')">Post Assignment</button>
                 </div>
 
                 <div id="newHwForm" class="hidden" style="background: #f8fafc; padding: 15px; margin-bottom: 20px;">
@@ -295,14 +296,29 @@
                 </div>
             </div>
 
+            <div id="tab-admin" class="hidden">
+                <h3 data-t="adminPendingTitle">Pending Approvals</h3>
+                <p style="font-size: 14px; margin-bottom: 15px;">Approve users to grant them access to the portal.</p>
+                <div id="pendingUsersList" style="margin-bottom: 30px;"></div>
+
+                <hr style="margin: 20px 0;">
+
+                <h3 data-t="adminUsersTitle">User Management</h3>
+                <p style="font-size: 14px; margin-bottom: 15px;">Change roles, ban, or unban existing users.</p>
+                <div id="approvedUsersList"></div>
+            </div>
+
         </div>
     </div>
 
     <script>
-        // ================= CONFIGURATION =================
-        // REPLACE THESE WITH YOUR SUPABASE KEYS
-        const SUPABASE_URL="https://gwaazjidvjnjlczvpvtz.supabase.co";
-        const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3YWF6amlkdmpuamxjenZwdnR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyNDUwNDUsImV4cCI6MjA3OTgyMTA0NX0.FOg28Bq6SY43gg64aWU8mwDveKWEbk352heQw9LMd_4";
+        // ================= CONFIGURATION (Local Storage Keys) =================
+        const LS_USER_KEY = 'portal_current_user';
+        const LS_USERS_KEY = 'portal_users';
+        const LS_PROJECTS_KEY = 'portal_projects';
+        const LS_EVENTS_KEY = 'portal_events';
+        const LS_ASSIGNMENTS_KEY = 'portal_assignments';
+        const LS_MESSAGES_KEY = 'portal_messages';
         
         // ================= TRANSLATIONS =================
         const dictionary = {
@@ -318,7 +334,10 @@
                 tabHomework: "Assignments",
                 tabChat: "Conversations",
                 tabProfile: "Profile",
-                tabAuthors: "Authors"
+                tabAuthors: "Authors",
+                tabAdmin: "Admin Panel", // NEW
+                adminPendingTitle: "Pending Approvals", // NEW
+                adminUsersTitle: "User Management" // NEW
             },
             fr: {
                 portalTitle: "Portail Étudiant",
@@ -332,7 +351,10 @@
                 tabHomework: "Devoirs",
                 tabChat: "Discussions",
                 tabProfile: "Profil",
-                tabAuthors: "Auteurs"
+                tabAuthors: "Auteurs",
+                tabAdmin: "Panneau Admin", // NEW
+                adminPendingTitle: "Approbations En Attente", // NEW
+                adminUsersTitle: "Gestion des Utilisateurs" // NEW
             },
             ar: {
                 portalTitle: "بوابة الطالب",
@@ -346,26 +368,51 @@
                 tabHomework: "الواجبات",
                 tabChat: "المحادثات",
                 tabProfile: "الملف الشخصي",
-                tabAuthors: "المطورون"
+                tabAuthors: "المطورون",
+                tabAdmin: "لوحة التحكم", // NEW
+                adminPendingTitle: "الطلاب قيد المراجعة", // NEW
+                adminUsersTitle: "إدارة المستخدمين" // NEW
             }
         };
 
         // ================= STATE =================
-        let supabaseClient;
         let currentUser = null;
-        let userProfile = null;
         let currentLang = navigator.language.startsWith('ar') ? 'ar' : (navigator.language.startsWith('fr') ? 'fr' : 'en');
+        let users = JSON.parse(localStorage.getItem(LS_USERS_KEY) || '[]');
+
+        // --- DEMO ADMIN CREATION ---
+        // If no users exist, create a default Admin user (email: admin@portal.com, pass: 123456)
+        if (!users.find(u => u.email === 'admin@portal.com')) {
+            const adminUser = {
+                id: 'admin_123',
+                email: 'admin@portal.com',
+                password: '123456', // Stored in plain text for simplicity
+                full_name: 'Portal Admin',
+                grade: '9AC',
+                section: 'A',
+                status: 'approved',
+                is_admin: true
+            };
+            users.push(adminUser);
+            localStorage.setItem(LS_USERS_KEY, JSON.stringify(users));
+            alert("Demo Admin Created: admin@portal.com / 123456");
+        }
+        // -------------------------
 
         // ================= INIT =================
         window.onload = () => {
-            if(SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
-                alert("Please configure Supabase Keys in the code!");
-                return;
-            }
-            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             applyLanguage();
             checkSession();
         };
+
+        // --- UTILITY FUNCTIONS ---
+        function getLocalStorageData(key) {
+            return JSON.parse(localStorage.getItem(key) || '[]');
+        }
+
+        function setLocalStorageData(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+        }
 
         // ================= LANGUAGE LOGIC =================
         function toggleLanguage() {
@@ -376,10 +423,8 @@
         }
 
         function applyLanguage() {
-            // Set RTL if Arabic
             document.body.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
             
-            // Translate Text
             document.querySelectorAll('[data-t]').forEach(el => {
                 const key = el.getAttribute('data-t');
                 if(dictionary[currentLang][key]) {
@@ -388,7 +433,7 @@
             });
         }
 
-        // ================= AUTH LOGIC =================
+        // ================= AUTH LOGIC (Local Storage) =================
         function switchAuthMode(mode) {
             document.querySelectorAll('.btn-outline').forEach(b => b.classList.remove('active'));
             event.target.classList.add('active');
@@ -401,50 +446,46 @@
             }
         }
 
-        async function checkSession() {
-            const { data } = await supabase.auth.getSession();
-            if(data.session) {
-                currentUser = data.session.user;
-                fetchProfile();
-            } else {
-                showScreen('authScreen');
-            }
-        }
-
-        async function fetchProfile() {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', currentUser.id)
-                .single();
-            
-            if(data) {
-                userProfile = data;
-                if(userProfile.status === 'pending') {
-                    showScreen('pendingScreen');
-                } else {
-                    initPortal();
+        function checkSession() {
+            const userId = localStorage.getItem(LS_USER_KEY);
+            if(userId) {
+                currentUser = users.find(u => u.id === userId);
+                if (currentUser) {
+                    if (currentUser.status === 'pending') {
+                        showScreen('pendingScreen');
+                    } else if (currentUser.status === 'banned') {
+                        alert("Your account has been banned. Access denied.");
+                        doLogout();
+                    } else {
+                        initPortal();
+                    }
+                    return;
                 }
-            } else {
-                console.error("Profile missing", error);
             }
+            showScreen('authScreen');
         }
 
-        async function doLogout() {
-            await supabase.auth.signOut();
+        function doLogout() {
+            localStorage.removeItem(LS_USER_KEY);
             location.reload();
         }
 
-        document.getElementById('loginForm').onsubmit = async (e) => {
+        document.getElementById('loginForm').onsubmit = (e) => {
             e.preventDefault();
             const email = document.getElementById('l_email').value;
             const pass = document.getElementById('l_password').value;
-            const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-            if(error) alert(error.message);
-            else checkSession();
+
+            const user = users.find(u => u.email === email && u.password === pass);
+
+            if(user) {
+                localStorage.setItem(LS_USER_KEY, user.id);
+                checkSession(); // Recheck session to load portal
+            } else {
+                alert("Login Failed: Invalid email or password.");
+            }
         };
 
-        document.getElementById('registerForm').onsubmit = async (e) => {
+        document.getElementById('registerForm').onsubmit = (e) => {
             e.preventDefault();
             const email = document.getElementById('r_email').value;
             const pass = document.getElementById('r_password').value;
@@ -452,27 +493,26 @@
             const grade = document.getElementById('r_grade').value;
             const section = document.getElementById('r_section').value;
 
-            // 1. Signup Auth
-            const { data, error } = await supabase.auth.signUp({ email, password: pass });
-            if(error) { alert(error.message); return; }
-
-            // 2. Create DB Profile
-            if(data.user) {
-                const { error: dbError } = await supabase.from('profiles').insert([{
-                    id: data.user.id,
-                    full_name: name,
-                    grade: grade,
-                    section: section,
-                    email: email,
-                    status: 'pending', // Waiting list
-                    is_admin: false
-                }]);
-                if(dbError) alert("Error creating profile: " + dbError.message);
-                else {
-                    alert("Registration successful! Please wait for admin approval.");
-                    location.reload();
-                }
+            if (users.some(u => u.email === email)) {
+                alert("Registration Failed: Email already exists.");
+                return;
             }
+
+            const newUser = {
+                id: Date.now().toString(), // Simple unique ID
+                email,
+                password: pass, // Stored in plain text
+                full_name: name,
+                grade,
+                section,
+                status: 'pending', // Waiting list is active
+                is_admin: false
+            };
+
+            users.push(newUser);
+            setLocalStorageData(LS_USERS_KEY, users);
+            alert("Registration successful! Please wait for admin approval (Ask the Admin to change your status).");
+            location.reload();
         };
 
         // ================= PORTAL LOGIC =================
@@ -485,60 +525,71 @@
 
         function initPortal() {
             showScreen('portalScreen');
-            document.getElementById('welcomeUser').innerText = userProfile.full_name;
+            document.getElementById('welcomeUser').innerText = `Welcome, ${currentUser.full_name} (${currentUser.grade})`;
             
             // Fill Profile Form
-            document.getElementById('p_name').value = userProfile.full_name;
-            document.getElementById('p_grade').value = userProfile.grade;
-            document.getElementById('p_section').value = userProfile.section;
+            document.getElementById('p_name').value = currentUser.full_name;
+            document.getElementById('p_grade').value = currentUser.grade;
+            document.getElementById('p_section').value = currentUser.section;
 
             // Admin Checks
-            if(userProfile.is_admin) {
+            if(currentUser.is_admin) {
                 document.getElementById('adminBadge').classList.remove('hidden');
                 document.getElementById('btnCreateEvent').classList.remove('hidden');
+                document.getElementById('btnPostAssignment').classList.remove('hidden'); 
+                document.getElementById('adminNav').classList.remove('hidden'); // NEW: Show Admin Tab
+            } else {
+                document.getElementById('btnPostAssignment').classList.add('hidden');
             }
 
-            // Load Initial Data
             loadProjects();
         }
 
         function showTab(tabName) {
-            // Hide all tabs
             document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             
-            // Show selected
             document.getElementById('tab-' + tabName).classList.remove('hidden');
-            event.target.classList.add('active'); // Highlight nav
+            
+            // Select the clicked nav item
+            const navItem = event && event.target ? event.target : document.querySelector(`.nav-item[onclick="showTab('${tabName}')"]`);
+            if (navItem) navItem.classList.add('active');
 
             // Lazy Load Data
             if(tabName === 'events') loadEvents();
             if(tabName === 'assignments') loadAssignments();
             if(tabName === 'chat') loadChat();
+            if(tabName === 'admin') loadAdminPanel(); // NEW: Load Admin Data
         }
 
-        // --- FEATURES: PROJECTS ---
-        async function createProject() {
+        // --- FEATURES: PROJECTS --- (Code omitted for brevity, logic remains the same)
+        function createProject() {
             const name = document.getElementById('proj_name').value;
             const desc = document.getElementById('proj_desc').value;
             const type = document.getElementById('proj_type').value;
             const key = type === 'private' ? Math.random().toString(36).substring(7).toUpperCase() : null;
-
-            const { error } = await supabase.from('projects').insert([{
-                name, description: desc, type, access_key: key, created_by: currentUser.id
-            }]);
             
-            if(!error) {
-                document.getElementById('newProjectForm').classList.add('hidden');
-                loadProjects();
-            }
+            const projects = getLocalStorageData(LS_PROJECTS_KEY);
+
+            projects.push({
+                id: Date.now(), name, description: desc, type, access_key: key, created_by: currentUser.full_name
+            });
+            
+            setLocalStorageData(LS_PROJECTS_KEY, projects);
+            document.getElementById('newProjectForm').classList.add('hidden');
+            loadProjects();
         }
 
-        async function loadProjects() {
-            const { data } = await supabase.from('projects').select('*').order('created_at', {ascending:false});
+        function loadProjects() {
+            const projects = getLocalStorageData(LS_PROJECTS_KEY).sort((a, b) => b.id - a.id);
             const list = document.getElementById('projectsList');
             list.innerHTML = '';
-            data.forEach(p => {
+
+            if (projects.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #999;">No projects found. Create one above!</p>';
+            }
+
+            projects.forEach(p => {
                 list.innerHTML += `
                     <div class="item-card">
                         <div class="item-header">
@@ -546,68 +597,85 @@
                             <span class="badge ${p.type === 'public' ? 'badge-grade' : 'badge-admin'}">${p.type}</span>
                         </div>
                         <p>${p.description}</p>
-                        ${p.access_key ? `<small style="color:red">Key: ${p.access_key}</small>` : ''}
+                        ${p.access_key ? `<small style="color:red">Access Key: ${p.access_key}</small>` : ''}
+                        <small style="color:#666">Created by: ${p.created_by}</small>
                     </div>`;
             });
         }
+        // --- FEATURES: EVENTS --- (Code omitted for brevity, logic remains the same)
+        function createEvent() {
+            if(!currentUser.is_admin) return alert("Error: Admins Only");
+            
+            const events = getLocalStorageData(LS_EVENTS_KEY);
 
-        // --- FEATURES: EVENTS (Admin) ---
-        async function createEvent() {
-            if(!userProfile.is_admin) return alert("Admins Only");
-            const { error } = await supabase.from('events').insert([{
+            events.push({
+                id: Date.now(),
                 title: document.getElementById('evt_title').value,
                 start_date: document.getElementById('evt_start').value,
                 end_date: document.getElementById('evt_end').value,
-                created_by: currentUser.id
-            }]);
-            if(!error) { document.getElementById('newEventForm').classList.add('hidden'); loadEvents(); }
+                created_by: currentUser.full_name
+            });
+
+            setLocalStorageData(LS_EVENTS_KEY, events);
+            document.getElementById('newEventForm').classList.add('hidden'); 
+            loadEvents();
         }
 
-        async function loadEvents() {
-            const { data } = await supabase.from('events').select('*').order('start_date');
+        function loadEvents() {
+            const events = getLocalStorageData(LS_EVENTS_KEY).sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
             const list = document.getElementById('eventsList');
             list.innerHTML = '';
-            data.forEach(e => {
+
+            if (events.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #999;">No upcoming events.</p>';
+            }
+
+            events.forEach(e => {
                 list.innerHTML += `
-                    <div class="item-card" style="border-color: var(--warning);">
+                    <div class="item-card" style="border-left-color: var(--warning);">
                         <h3>${e.title}</h3>
-                        <small>📅 ${e.start_date} to ${e.end_date}</small>
+                        <small>📅 From: ${e.start_date} To: ${e.end_date}</small>
                     </div>`;
             });
         }
-
-        // --- FEATURES: ASSIGNMENTS ---
-        async function createAssignment() {
+        // --- FEATURES: ASSIGNMENTS --- (Code omitted for brevity, logic remains the same)
+        function createAssignment() {
             let desc = document.getElementById('hw_desc').value;
             // Basic AI Moderation (Keyword Filter)
-            const badWords = ['bad', 'stupid', 'hate']; 
-            if(badWords.some(w => desc.includes(w))) {
-                alert("Your message contains inappropriate words.");
+            const badWords = ['bad', 'stupid', 'hate', 'kill', 'inappropriate']; 
+            if(badWords.some(w => desc.toLowerCase().includes(w))) {
+                alert("Your message contains inappropriate words and was blocked by moderation.");
                 return;
             }
 
-            const { error } = await supabase.from('assignments').insert([{
+            const assignments = getLocalStorageData(LS_ASSIGNMENTS_KEY);
+
+            assignments.push({
+                id: Date.now(),
                 title: document.getElementById('hw_title').value,
                 description: desc,
                 subject: document.getElementById('hw_subject').value,
                 grade_target: document.getElementById('hw_grade_target').value,
-                created_by: currentUser.id,
-                author_name: userProfile.full_name
-            }]);
-            if(!error) { document.getElementById('newHwForm').classList.add('hidden'); loadAssignments(); }
+                author_name: currentUser.full_name
+            });
+
+            setLocalStorageData(LS_ASSIGNMENTS_KEY, assignments);
+            document.getElementById('newHwForm').classList.add('hidden'); 
+            loadAssignments();
         }
 
-        async function loadAssignments() {
-            // Only show assignments for user's grade
-            const { data } = await supabase.from('assignments')
-                .select('*')
-                .eq('grade_target', userProfile.grade)
-                .order('created_at', {ascending:false});
+        function loadAssignments() {
+            const assignments = getLocalStorageData(LS_ASSIGNMENTS_KEY)
+                .sort((a, b) => b.id - a.id)
+                .filter(a => a.grade_target === currentUser.grade); // Filter by user's grade
                 
             const list = document.getElementById('assignmentsList');
             list.innerHTML = '';
-            if(data.length === 0) list.innerHTML = '<p>No assignments for your grade.</p>';
-            data.forEach(a => {
+            if(assignments.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #999;">No assignments found for your grade.</p>';
+            }
+
+            assignments.forEach(a => {
                 list.innerHTML += `
                     <div class="item-card">
                         <div class="item-header">
@@ -615,53 +683,179 @@
                             <span class="badge badge-grade">${a.subject}</span>
                         </div>
                         <p>${a.description}</p>
-                        <small style="color:#666">By: ${a.author_name}</small>
+                        <small style="color:#666">Target: ${a.grade_target} | Posted By: ${a.author_name}</small>
                     </div>`;
             });
         }
-
-        // --- FEATURES: CHAT ---
-        async function sendChat() {
+        // --- FEATURES: CHAT --- (Code omitted for brevity, logic remains the same)
+        function sendChat() {
             const txt = document.getElementById('chatMsg').value;
             if(!txt) return;
-            // Basic Moderation
-            if(txt.toLowerCase().includes('stupid')) { alert("Moderated!"); return; }
 
-            await supabase.from('messages').insert([{
+            // Basic Moderation
+            const badWords = ['bad', 'stupid', 'hate', 'inappropriate', 'swear']; 
+            if(badWords.some(w => txt.toLowerCase().includes(w))) { 
+                alert("Moderated: Inappropriate language detected."); 
+                return; 
+            }
+
+            const messages = getLocalStorageData(LS_MESSAGES_KEY);
+
+            messages.push({
+                id: Date.now(),
                 content: txt,
-                user_name: userProfile.full_name,
-                grade_tag: userProfile.grade
-            }]);
+                user_name: currentUser.full_name,
+                grade_tag: currentUser.grade,
+                created_at: new Date().toLocaleTimeString()
+            });
+
+            setLocalStorageData(LS_MESSAGES_KEY, messages);
             document.getElementById('chatMsg').value = '';
             loadChat();
         }
 
-        async function loadChat() {
-            const { data } = await supabase.from('messages').select('*').order('created_at', {ascending:false}).limit(20);
+        function loadChat() {
+            const messages = getLocalStorageData(LS_MESSAGES_KEY)
+                .sort((a, b) => b.id - a.id) // Sort newest first
+                .slice(0, 20); // Limit to last 20 messages
+            
             const box = document.getElementById('chatBox');
             box.innerHTML = '';
-            // Display reverse so newest is at bottom usually, but flex-col standard here
-            data.forEach(m => {
+
+            messages.reverse().forEach(m => { // Reverse again for display (oldest at top, newest at bottom)
                 box.innerHTML += `
                     <div class="msg">
-                        <div class="msg-meta">${m.user_name} [${m.grade_tag}] - ${new Date(m.created_at).toLocaleTimeString()}</div>
+                        <div class="msg-meta">${m.user_name} [${m.grade_tag}] - ${m.created_at}</div>
                         ${m.content}
                     </div>`;
             });
+            box.scrollTop = box.scrollHeight;
         }
 
-        // --- FEATURES: PROFILE ---
-        async function updateProfile() {
-            const updates = {
-                full_name: document.getElementById('p_name').value,
-                grade: document.getElementById('p_grade').value,
-                section: document.getElementById('p_section').value,
-            };
-            await supabase.from('profiles').update(updates).eq('id', currentUser.id);
-            alert("Profile Updated");
-            location.reload();
+        // --- FEATURES: PROFILE --- (Code omitted for brevity, logic remains the same)
+        function updateProfile() {
+            const userIndex = users.findIndex(u => u.id === currentUser.id);
+
+            if (userIndex !== -1) {
+                users[userIndex].full_name = document.getElementById('p_name').value;
+                users[userIndex].grade = document.getElementById('p_grade').value;
+                users[userIndex].section = document.getElementById('p_section').value;
+                
+                setLocalStorageData(LS_USERS_KEY, users);
+                currentUser = users[userIndex]; 
+
+                alert("Profile Updated Successfully!");
+                location.reload();
+            }
+        }
+        
+        // ================= ADMIN PANEL FEATURES (NEW) =================
+
+        function updateUsersArray(userId, updates) {
+            let users = getLocalStorageData(LS_USERS_KEY);
+            const userIndex = users.findIndex(u => u.id === userId);
+            
+            if (userIndex !== -1) {
+                // Apply updates (e.g., { status: 'approved' })
+                Object.assign(users[userIndex], updates);
+                setLocalStorageData(LS_USERS_KEY, users);
+                loadAdminPanel(); // Refresh view
+                
+                // If the current user's profile was updated, refresh the page to reflect the change (e.g., if they were banned)
+                if (userId === currentUser.id) {
+                    currentUser = users[userIndex];
+                    checkSession(); // Recheck status and refresh if needed
+                }
+            }
         }
 
+        window.approveUser = (userId) => {
+            updateUsersArray(userId, { status: 'approved' });
+            alert("User Approved. They can now log in.");
+        }
+
+        window.banUser = (userId) => {
+            updateUsersArray(userId, { status: 'banned' });
+            alert("User Banned.");
+        }
+
+        window.toggleAdmin = (userId) => {
+            const users = getLocalStorageData(LS_USERS_KEY);
+            const user = users.find(u => u.id === userId);
+            
+            if (user.id === currentUser.id) {
+                alert("You cannot change your own admin status.");
+                return;
+            }
+            
+            updateUsersArray(userId, { is_admin: !user.is_admin });
+            alert(user.full_name + " admin status toggled.");
+        }
+
+        function loadAdminPanel() {
+            if (!currentUser.is_admin) return; // Critical security check
+
+            const allUsers = getLocalStorageData(LS_USERS_KEY);
+            
+            const pendingList = document.getElementById('pendingUsersList');
+            const approvedList = document.getElementById('approvedUsersList');
+            
+            pendingList.innerHTML = '';
+            approvedList.innerHTML = '';
+
+            const pendingUsers = allUsers.filter(u => u.status === 'pending');
+            // Filter out the current admin from the main list for safety
+            const manageableUsers = allUsers.filter(u => u.status !== 'pending' && u.id !== currentUser.id);
+
+            // --- Render Pending Users ---
+            if (pendingUsers.length === 0) {
+                pendingList.innerHTML = '<p style="color: var(--success); font-weight: 500;">✅ No new users waiting for approval.</p>';
+            } else {
+                pendingUsers.forEach(u => {
+                    pendingList.innerHTML += `
+                        <div class="item-card" style="border-left-color: var(--warning); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <b>${u.full_name}</b> - ${u.grade}${u.section}<br>
+                                <small>${u.email}</small>
+                            </div>
+                            <div>
+                                <button class="btn btn-small" style="margin-right: 10px; background: var(--success);" onclick="approveUser('${u.id}')">Approve</button>
+                                <button class="btn btn-small btn-danger" onclick="banUser('${u.id}')">Ban</button>
+                            </div>
+                        </div>`;
+                });
+            }
+
+            // --- Render Approved/Banned Users ---
+            if (manageableUsers.length === 0) {
+                approvedList.innerHTML = '<p style="color: #999;">No other approved users to manage.</p>';
+            } else {
+                manageableUsers.forEach(u => {
+                    const adminStatus = u.is_admin ? '<span class="badge badge-admin">ADMIN</span>' : '';
+                    const statusColor = u.status === 'approved' ? 'var(--primary)' : 'var(--danger)';
+                    const statusText = u.status.toUpperCase();
+                    const toggleBtnText = u.is_admin ? 'Demote Admin' : 'Make Admin';
+                    const banOrUnbanBtn = u.status === 'banned' 
+                        ? `<button class="btn btn-small btn-success" style="margin-left: 10px;" onclick="approveUser('${u.id}')">Unban/Approve</button>`
+                        : `<button class="btn btn-small btn-danger" style="margin-left: 10px;" onclick="banUser('${u.id}')">Ban User</button>`;
+
+                    approvedList.innerHTML += `
+                        <div class="item-card" style="border-left-color: ${statusColor};">
+                            <div class="item-header">
+                                <div>
+                                    <b>${u.full_name}</b> ${adminStatus}
+                                </div>
+                                <span class="badge" style="background:${statusColor}; color:white;">${statusText}</span>
+                            </div>
+                            <p>Grade: ${u.grade}${u.section} | Email: ${u.email}</p>
+                            <div style="margin-top: 10px; text-align: right;">
+                                <button class="btn btn-small" style="background: #3b82f6;" onclick="toggleAdmin('${u.id}')">${toggleBtnText}</button>
+                                ${banOrUnbanBtn}
+                            </div>
+                        </div>`;
+                });
+            }
+        }
     </script>
 </body>
 </html>
